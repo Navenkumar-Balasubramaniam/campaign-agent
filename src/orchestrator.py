@@ -20,9 +20,12 @@ class CampaignOrchestrator:
         budget = self.budget_agent.generate(brief)
         ab_tests = self.ab_test_agent.generate(copy, visuals["image_prompts"])
 
-        image_url = None
+        image_urls = []
+
         if generate_image:
-            image_url = self.client.generate_image(visuals["image_prompts"][0])
+            for prompt in visuals["image_prompts"]:
+                image_url = self.client.generate_image(prompt)
+                image_urls.append(image_url)
 
         return self.report_agent.generate(
             brief_summary=brief.brief_summary(),
@@ -30,5 +33,5 @@ class CampaignOrchestrator:
             visuals=visuals,
             budget=budget,
             ab_tests=ab_tests,
-            image_url=image_url,
+            image_urls=image_urls,
         )

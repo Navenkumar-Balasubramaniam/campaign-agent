@@ -7,11 +7,17 @@ class VisualAgent:
         )
 
         prompt_2 = (
-            f"High-converting social media campaign visual for {brief.product}. "
+            f"High-converting lifestyle ad visual for {brief.product}. "
             f"Designed for {brief.audience}. {brief.tone} brand style. "
-            f"Modern commercial photography, strong product focus, suitable for {brief.channel}."
+            f"Modern commercial photography, emotional appeal, suitable for {brief.channel}."
+        )
+
+        prompt_3 = (
+            f"Minimal premium product-focused campaign visual for {brief.product}. "
+            f"Audience: {brief.audience}. Campaign goal: {brief.goal}. "
+            f"Elegant layout, strong product focus, professional advertising style, no messy background."
         )
 
         return {
-            "image_prompts": [prompt_1, prompt_2]
+            "image_prompts": [prompt_1, prompt_2, prompt_3]
         }

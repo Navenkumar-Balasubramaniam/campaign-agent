@@ -11,19 +11,53 @@ st.set_page_config(page_title=settings.APP_NAME, layout="wide")
 st.title("AI Campaign Agent Demo")
 st.caption("Creative brief in. Campaign pack out.")
 
+
 with st.form("campaign_brief"):
+    st.subheader("Creative Brief")
+
     product = st.text_input("Product", "Organic Herbal Tea")
-    audience = st.text_area("Target Audience", "Women aged 25-45 interested in wellness and natural products")
-    goal = st.selectbox("Campaign Goal", ["Sales", "Awareness", "Lead Generation"])
-    budget = st.number_input("Budget", min_value=1, value=1000)
-    channel = st.selectbox("Channel", ["Instagram", "Facebook", "Meta", "LinkedIn"])
-    tone = st.text_input("Tone", "Premium, calming, wellness-focused")
-    duration_days = st.number_input("Duration in Days", min_value=1, value=14)
+
+    audience = st.text_area(
+        "Target Audience",
+        "Women aged 25-45 interested in wellness and natural products",
+    )
+
+    goal = st.selectbox(
+        "Campaign Goal",
+        ["Sales", "Awareness", "Lead Generation"],
+    )
+
+    budget = st.number_input(
+        "Budget",
+        min_value=1,
+        value=1000,
+    )
+
+    channel = st.selectbox(
+        "Channel",
+        ["Instagram", "Facebook", "Meta", "LinkedIn"],
+    )
+
+    tone = st.text_input(
+        "Tone",
+        "Premium, calming, wellness-focused",
+    )
+
+    duration_days = st.number_input(
+        "Duration in Days",
+        min_value=1,
+        value=14,
+    )
+
     cta = st.text_input("CTA", "Shop Now")
 
-    generate_image = st.checkbox("Generate 1 paid image using OpenRouter", value=False)
+    generate_image = st.checkbox(
+        "Generate 3 paid images using OpenRouter",
+        value=False,
+    )
 
     submitted = st.form_submit_button("Generate Campaign Pack")
+
 
 if submitted:
     try:
@@ -42,28 +76,119 @@ if submitted:
         orchestrator = CampaignOrchestrator(client)
 
         with st.spinner("Generating campaign pack..."):
-            result = orchestrator.run(brief, generate_image=generate_image)
+            result = orchestrator.run(
+                brief,
+                generate_image=generate_image,
+            )
 
         pack = result["campaign_pack"]
 
-        st.subheader("Campaign Summary")
-        st.json(pack["brief_summary"])
+        st.success("Campaign pack generated successfully.")
 
-        st.subheader("Copy Variants")
-        st.json(pack["copy_variants"])
+        st.divider()
 
-        st.subheader("Visual Concepts")
-        st.json(pack["visual_concepts"])
+        st.header("Campaign Pack")
 
-        if pack["generated_image_url"]:
-            st.subheader("Generated Poster")
-            st.image(pack["generated_image_url"])
+        st.subheader("Executive Recommendation")
+        st.write(pack["recommendation_note"])
 
-        st.subheader("Budget Plan")
-        st.json(pack["budget_plan"])
+        st.subheader("Campaign Brief")
+        brief_summary = pack["brief_summary"]
 
-        st.subheader("A/B Test Plan")
-        st.json(pack["ab_test_plan"])
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown(f"**Product:** {brief_summary['product']}")
+            st.markdown(f"**Audience:** {brief_summary['audience']}")
+            st.markdown(f"**Goal:** {brief_summary['goal']}")
+            st.markdown(f"**Channel:** {brief_summary['channel']}")
+
+        with col2:
+            st.markdown(f"**Tone:** {brief_summary['tone']}")
+            st.markdown(f"**Budget:** {brief_summary['budget']}")
+            st.markdown(f"**Duration:** {brief_summary['duration_days']} days")
+            st.markdown(f"**CTA:** {brief_summary['cta']}")
+
+        st.divider()
+
+        st.subheader("Recommended Ad Copy")
+
+        headlines = pack["copy_variants"]["headlines"]
+        primary_texts = pack["copy_variants"]["primary_texts"]
+        ctas = pack["copy_variants"]["ctas"]
+
+        for i, headline in enumerate(headlines, start=1):
+            primary_text = primary_texts[i - 1] if i - 1 < len(primary_texts) else ""
+            selected_cta = ctas[0] if ctas else brief_summary["cta"]
+
+            with st.container(border=True):
+                st.markdown(f"### Variant {i}")
+                st.markdown(f"**Headline:** {headline}")
+                st.markdown("**Primary Text:**")
+                st.write(primary_text)
+                st.markdown(f"**CTA:** {selected_cta}")
+
+        st.divider()
+
+        st.subheader("Generated Campaign Posters")
+
+        image_urls = pack.get("generated_image_urls", [])
+
+        if image_urls:
+            cols = st.columns(3)
+
+            for i, image_url in enumerate(image_urls):
+                with cols[i % 3]:
+                    st.image(
+                        image_url,
+                        caption=f"Poster Concept {i + 1}",
+                        use_container_width=True,
+                    )
+        else:
+            st.info("Image generation was not selected.")
+
+        st.divider()
+
+        st.subheader("Visual Strategy Notes")
+
+        image_prompts = pack["visual_concepts"]["image_prompts"]
+
+        for i, prompt in enumerate(image_prompts, start=1):
+            with st.expander(f"Visual Concept {i} Prompt"):
+                st.write(prompt)
+
+        st.divider()
+
+        st.subheader("Budget Recommendation")
+        st.write(pack["budget_note"])
+
+        budget_plan = pack["budget_plan"]
+
+        st.markdown(f"**Total Budget:** {budget_plan['total_budget']}")
+        st.markdown(f"**Recommended Daily Budget:** {budget_plan['daily_budget']}")
+
+        for item in budget_plan["budget_split"]:
+            st.markdown(
+                f"- **{item['bucket']}**: {item['percentage']}% "
+                f"({item['amount']})"
+            )
+
+        st.divider()
+
+        st.subheader("A/B Testing Recommendation")
+        st.write(pack["ab_test_note"])
+
+        for test in pack["ab_test_plan"]["tests"]:
+            with st.container(border=True):
+                st.markdown(f"### Variant {test['variant']}")
+                st.markdown(f"**Headline:** {test['headline']}")
+                st.markdown(f"**Primary Text:** {test['primary_text']}")
+                st.markdown(f"**Success Metric:** {test['success_metric']}")
+
+        st.divider()
+
+        st.subheader("Launch Status")
+        st.success(pack["launch_status"])
 
     except Exception as e:
         st.error(str(e))

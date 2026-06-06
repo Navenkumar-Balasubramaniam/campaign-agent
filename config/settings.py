@@ -12,7 +12,7 @@ class Settings:
     )
     IMAGE_MODEL = os.getenv(
         "OPENROUTER_IMAGE_MODEL",
-        "black-forest-labs/flux-2-klein",
+        "black-forest-labs/flux.2-klein-4b",
     )
     MAX_IMAGES_PER_CAMPAIGN = int(os.getenv("MAX_IMAGES_PER_CAMPAIGN", "1"))
     APP_NAME = os.getenv("APP_NAME", "AI Campaign Agent Demo")

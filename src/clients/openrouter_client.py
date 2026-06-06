@@ -1,4 +1,5 @@
 import base64
+from urllib import response
 import requests
 
 from config.settings import settings
@@ -22,14 +23,18 @@ class OpenRouterClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an expert digital advertising strategist. Always return valid JSON only.",
+                    "content": (
+                        "You are an expert digital advertising strategist. "
+                        "Return ONLY valid JSON. No markdown. No explanation."
+                    ),
                 },
                 {
                     "role": "user",
                     "content": prompt,
                 },
             ],
-            "temperature": 0.7,
+            "temperature": 0.3,
+            "response_format": {"type": "json_object"},
         }
 
         response = requests.post(
@@ -38,9 +43,16 @@ class OpenRouterClient:
             json=payload,
             timeout=60,
         )
-        response.raise_for_status()
 
-        content = response.json()["choices"][0]["message"]["content"]
+        if not response.ok:
+            raise RuntimeError(
+                f"OpenRouter error {response.status_code}: {response.text}"
+            )
+
+        data = response.json()
+        message = data["choices"][0]["message"]
+        content = message.get("content", "")
+
         return extract_json(content)
 
     def generate_image(self, prompt: str):
@@ -61,9 +73,17 @@ class OpenRouterClient:
             json=payload,
             timeout=120,
         )
-        response.raise_for_status()
+
+        if not response.ok:
+            raise RuntimeError(
+                f"OpenRouter image error {response.status_code}: {response.text}"
+            )
 
         data = response.json()
+
+        if "choices" not in data:
+            raise RuntimeError(f"Unexpected OpenRouter image response: {data}")
+
         message = data["choices"][0]["message"]
 
         images = message.get("images", [])
@@ -71,9 +91,10 @@ class OpenRouterClient:
             return images[0].get("image_url", {}).get("url")
 
         content = message.get("content")
+
         if isinstance(content, list):
             for item in content:
                 if item.get("type") == "image_url":
                     return item["image_url"]["url"]
 
-        return None
+        raise RuntimeError(f"No image found in OpenRouter response: {data}")
