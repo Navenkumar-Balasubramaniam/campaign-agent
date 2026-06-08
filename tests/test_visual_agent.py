@@ -17,5 +17,5 @@ def test_visual_agent_generates_prompts():
     result = VisualAgent().generate_prompts(brief)
 
     assert "image_prompts" in result
-    assert len(result["image_prompts"]) == 2
+    assert len(result["image_prompts"]) == 3
     assert "Herbal Tea" in result["image_prompts"][0]

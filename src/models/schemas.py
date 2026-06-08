@@ -2,6 +2,11 @@ from pydantic import BaseModel, Field
 
 
 class CampaignBrief(BaseModel):
+    brand: str = Field("Custom Brand", min_length=2)
+    campaign_trigger: str = Field(
+        "A social moment that should trigger a campaign.",
+        min_length=2,
+    )
     product: str = Field(..., min_length=2)
     audience: str = Field(..., min_length=2)
     goal: str = Field(..., min_length=2)

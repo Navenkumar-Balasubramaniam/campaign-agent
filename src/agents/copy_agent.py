@@ -3,6 +3,9 @@ class CopyAgent:
         self.client = client
 
     def generate(self, brief):
+        if hasattr(self.client, "generate_copy"):
+            return self.client.generate_copy(brief)
+
         prompt = f"""
 Return valid JSON only.
 
