@@ -3,6 +3,8 @@ from src.agents.visual_agent import VisualAgent
 from src.agents.budget_agent import BudgetAgent
 from src.agents.ab_test_agent import ABTestAgent
 from src.agents.report_agent import ReportAgent
+from src.agents.strategy_agent import StrategyAgent
+from src.agents.asset_agent import AssetAgent
 
 
 class CampaignOrchestrator:
@@ -13,12 +15,16 @@ class CampaignOrchestrator:
         self.budget_agent = BudgetAgent()
         self.ab_test_agent = ABTestAgent()
         self.report_agent = ReportAgent()
+        self.strategy_agent = StrategyAgent()
+        self.asset_agent = AssetAgent()
 
     def run(self, brief, generate_image=False):
+        strategy = self.strategy_agent.generate(brief)
         copy = self.copy_agent.generate(brief)
         visuals = self.visual_agent.generate_prompts(brief)
         budget = self.budget_agent.generate(brief)
         ab_tests = self.ab_test_agent.generate(copy, visuals["image_prompts"])
+        mock_assets = self.asset_agent.generate(brief)
 
         image_urls = []
 
@@ -34,4 +40,6 @@ class CampaignOrchestrator:
             budget=budget,
             ab_tests=ab_tests,
             image_urls=image_urls,
+            strategy=strategy,
+            mock_assets=mock_assets,
         )

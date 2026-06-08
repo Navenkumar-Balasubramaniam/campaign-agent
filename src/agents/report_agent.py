@@ -1,10 +1,23 @@
 class ReportAgent:
-    def generate(self, brief_summary, copy, visuals, budget, ab_tests, image_urls=None):
+    def generate(
+        self,
+        brief_summary,
+        copy,
+        visuals,
+        budget,
+        ab_tests,
+        image_urls=None,
+        strategy=None,
+        mock_assets=None,
+    ):
         image_urls = image_urls or []
+        strategy = strategy or {}
+        mock_assets = mock_assets or {"assets": []}
         primary_metric = self._primary_metric(brief_summary["goal"])
+        brand = brief_summary.get("brand", "the brand")
 
         recommendation_note = (
-            f"This campaign is designed for {brief_summary['channel']} with the objective of "
+            f"This {brand} campaign is designed for {brief_summary['channel']} with the objective of "
             f"driving {brief_summary['goal'].lower()}. The recommended direction is to use a "
             f"{brief_summary['tone'].lower()} tone that directly connects with "
             f"{brief_summary['audience']}. The campaign should begin with multiple creative "
@@ -28,11 +41,12 @@ class ReportAgent:
                 "step": "Input interpretation",
                 "input_signal": (
                     f"Product: {brief_summary['product']}; audience: "
-                    f"{brief_summary['audience']}; goal: {brief_summary['goal']}."
+                    f"{brief_summary['audience']}; goal: {brief_summary['goal']}; "
+                    f"brand: {brand}."
                 ),
                 "decision": (
                     "Treat the brief as a paid social campaign and produce copy, visuals, "
-                    "budget guidance, and testing recommendations from the same input."
+                    "budget guidance, testing recommendations, and a launch-ready campaign plan."
                 ),
             },
             {
@@ -62,23 +76,34 @@ class ReportAgent:
                     "toward the best-performing creative after early results."
                 ),
             },
+            {
+                "step": "Asset planning",
+                "input_signal": f"Brand context: {brand}; product: {brief_summary['product']}.",
+                "decision": (
+                    "Use free mock/reference assets for academic campaign planning, while "
+                    "keeping real launch assets subject to brand and legal approval."
+                ),
+            },
         ]
 
         assumptions = [
             "The campaign is an early-stage academic prototype, not a live media plan.",
             "Audience and product details come from the user-provided brief.",
             "Budget recommendations are rule-based and should be checked against real platform data before launch.",
+            "Mock assets are used for academic demonstration and do not replace official brand-approved creative.",
         ]
 
         limitations = [
             "The prototype does not connect to live ad performance, CRM, or competitor data.",
             "Generated copy still needs human review for brand accuracy and platform policy compliance.",
             "Image generation may require a paid API, so the free demo mode focuses on text, strategy, and visual prompts.",
+            "Free stock or Commons images may still need review for trademark, model-release, and brand-approval issues.",
         ]
 
         ethical_considerations = [
             "Avoid targeting vulnerable groups or making misleading product claims.",
             "Review age-sensitive categories, such as alcohol or health products, before publishing.",
+            "For beer campaigns, target only users who are legally allowed to buy alcohol in the relevant market.",
             "Keep a human marketer responsible for final approval and campaign monitoring.",
         ]
 
@@ -95,9 +120,11 @@ class ReportAgent:
             "campaign_pack": {
                 "brief_summary": brief_summary,
                 "recommendation_note": recommendation_note,
+                "campaign_strategy": strategy,
                 "decision_rationale": decision_rationale,
                 "copy_variants": copy,
                 "visual_concepts": visuals,
+                "mock_assets": mock_assets,
                 "generated_image_urls": image_urls,
                 "budget_plan": budget,
                 "budget_note": budget_note,

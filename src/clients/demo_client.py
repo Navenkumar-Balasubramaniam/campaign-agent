@@ -1,5 +1,6 @@
 class DemoClient:
     def generate_copy(self, brief):
+        brand = brief.brand
         product = brief.product
         audience = brief.audience
         cta = brief.cta
@@ -17,21 +18,21 @@ class DemoClient:
 
         return {
             "headlines": [
-                f"{angle.title()} {product}",
-                f"{product} for {audience}",
-                f"A Smarter Reason to Choose {product}",
+                f"{angle.title()} {brand}",
+                f"{product} for good-vibes nights",
+                f"Choose {brand} tonight",
             ],
             "primary_texts": [
                 (
-                    f"Meet {product}, {benefit}. This message is shaped for "
+                    f"Meet {brand} {product}, {benefit}. This message is shaped for "
                     f"{audience} and designed to support a {brief.goal.lower()} campaign."
                 ),
                 (
-                    f"Give {audience} a direct reason to engage with {product}. "
+                    f"Give {audience} a direct reason to engage with {brand}. "
                     f"The tone stays {brief.tone.lower()} while keeping the offer simple."
                 ),
                 (
-                    f"Use this creative route to test whether {audience} responds better "
+                    f"Use this creative route to test whether the target audience responds better "
                     f"to product benefits, lifestyle appeal, or a direct {cta} message."
                 ),
             ],

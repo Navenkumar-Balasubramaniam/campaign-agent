@@ -37,3 +37,5 @@ def test_orchestrator_generates_campaign_pack():
         "https://example.com/generated-image.png",
     ]
     assert "decision_rationale" in result["campaign_pack"]
+    assert "campaign_strategy" in result["campaign_pack"]
+    assert "mock_assets" in result["campaign_pack"]

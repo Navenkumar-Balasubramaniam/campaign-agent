@@ -7,50 +7,86 @@ from src.models.schemas import CampaignBrief
 from src.orchestrator import CampaignOrchestrator
 
 
+CAMPAIGN_PRESETS = {
+    "Estrella beer mock campaign": {
+        "brand": "Estrella",
+        "product": "Mediterranean-style beer",
+        "audience": "young adults aged 18-24 who enjoy social nights out",
+        "goal_index": 0,
+        "budget": 1000,
+        "channel_index": 0,
+        "tone": "Fun, party, good vibes",
+        "duration_days": 14,
+        "cta": "Shop Now",
+    },
+    "Custom campaign": {
+        "brand": "Custom Brand",
+        "product": "Organic Herbal Tea",
+        "audience": "Women aged 25-45 interested in wellness and natural products",
+        "goal_index": 0,
+        "budget": 1000,
+        "channel_index": 0,
+        "tone": "Premium, calming, wellness-focused",
+        "duration_days": 14,
+        "cta": "Shop Now",
+    },
+}
+
+
 st.set_page_config(page_title=settings.APP_NAME, layout="wide")
 
 st.title("AI Campaign Agent Demo")
 st.caption("Creative brief in. Campaign pack out.")
 
+preset_name = st.selectbox(
+    "Campaign Preset",
+    list(CAMPAIGN_PRESETS.keys()),
+)
+preset = CAMPAIGN_PRESETS[preset_name]
+
 
 with st.form("campaign_brief"):
     st.subheader("Creative Brief")
 
-    product = st.text_input("Product", "Organic Herbal Tea")
+    brand = st.text_input("Company / Brand", preset["brand"])
+
+    product = st.text_input("Product", preset["product"])
 
     audience = st.text_area(
         "Target Audience",
-        "Women aged 25-45 interested in wellness and natural products",
+        preset["audience"],
     )
 
     goal = st.selectbox(
         "Campaign Goal",
         ["Sales", "Awareness", "Lead Generation"],
+        index=preset["goal_index"],
     )
 
     budget = st.number_input(
         "Budget",
         min_value=1,
-        value=1000,
+        value=preset["budget"],
     )
 
     channel = st.selectbox(
         "Channel",
         ["Instagram", "Facebook", "Meta", "LinkedIn"],
+        index=preset["channel_index"],
     )
 
     tone = st.text_input(
         "Tone",
-        "Premium, calming, wellness-focused",
+        preset["tone"],
     )
 
     duration_days = st.number_input(
         "Duration in Days",
         min_value=1,
-        value=14,
+        value=preset["duration_days"],
     )
 
-    cta = st.text_input("CTA", "Shop Now")
+    cta = st.text_input("CTA", preset["cta"])
 
     generation_mode = st.selectbox(
         "Generation Mode",
@@ -69,6 +105,7 @@ with st.form("campaign_brief"):
 if submitted:
     try:
         brief = CampaignBrief(
+            brand=brand,
             product=product,
             audience=audience,
             goal=goal,
@@ -99,6 +136,24 @@ if submitted:
         st.subheader("Executive Recommendation")
         st.write(pack["recommendation_note"])
 
+        st.subheader("Campaign Strategy")
+        strategy = pack["campaign_strategy"]
+        st.markdown(f"**Campaign Name:** {strategy['campaign_name']}")
+        st.markdown(f"**Objective:** {strategy['objective']}")
+        st.markdown(f"**Target Insight:** {strategy['target_insight']}")
+        st.markdown(f"**Positioning:** {strategy['positioning']}")
+
+        st.markdown("**Message Pillars**")
+        for pillar in strategy["message_pillars"]:
+            st.markdown(f"- **{pillar['pillar']}:** {pillar['message']}")
+
+        st.markdown("**Content Plan**")
+        for item in strategy["content_plan"]:
+            with st.container(border=True):
+                st.markdown(f"**{item['phase']} - {item['format']}**")
+                st.write(item["concept"])
+                st.caption(item["purpose"])
+
         st.subheader("Agent Reasoning")
         for item in pack["decision_rationale"]:
             with st.container(border=True):
@@ -112,6 +167,7 @@ if submitted:
         col1, col2 = st.columns(2)
 
         with col1:
+            st.markdown(f"**Brand:** {brief_summary['brand']}")
             st.markdown(f"**Product:** {brief_summary['product']}")
             st.markdown(f"**Audience:** {brief_summary['audience']}")
             st.markdown(f"**Goal:** {brief_summary['goal']}")
@@ -172,6 +228,24 @@ if submitted:
         for i, prompt in enumerate(image_prompts, start=1):
             with st.expander(f"Visual Concept {i} Prompt"):
                 st.write(prompt)
+
+        st.subheader("Mock Asset Sources")
+        mock_assets = pack["mock_assets"]
+        st.write(mock_assets["asset_strategy"])
+        st.caption(mock_assets["usage_note"])
+
+        asset_cols = st.columns(3)
+        for i, asset in enumerate(mock_assets["assets"]):
+            with asset_cols[i % 3]:
+                with st.container(border=True):
+                    if asset["image_url"]:
+                        st.image(asset["image_url"], use_container_width=True)
+                    st.markdown(f"**{asset['title']}**")
+                    st.caption(asset["asset_type"])
+                    st.markdown(f"Source: [{asset['source']}]({asset['source_url']})")
+                    st.markdown(f"License: {asset['license']}")
+                    st.write(asset["use_case"])
+                    st.caption(asset["note"])
 
         st.divider()
 
