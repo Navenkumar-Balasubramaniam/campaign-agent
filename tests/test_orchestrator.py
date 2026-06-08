@@ -31,4 +31,9 @@ def test_orchestrator_generates_campaign_pack():
 
     assert "campaign_pack" in result
     assert result["campaign_pack"]["brief_summary"]["product"] == "Herbal Tea"
-    assert result["campaign_pack"]["generated_image_url"] == "https://example.com/generated-image.png"
+    assert result["campaign_pack"]["generated_image_urls"] == [
+        "https://example.com/generated-image.png",
+        "https://example.com/generated-image.png",
+        "https://example.com/generated-image.png",
+    ]
+    assert "decision_rationale" in result["campaign_pack"]

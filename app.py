@@ -1,6 +1,7 @@
 import streamlit as st
 
 from config.settings import settings
+from src.clients.demo_client import DemoClient
 from src.clients.openrouter_client import OpenRouterClient
 from src.models.schemas import CampaignBrief
 from src.orchestrator import CampaignOrchestrator
@@ -51,9 +52,15 @@ with st.form("campaign_brief"):
 
     cta = st.text_input("CTA", "Shop Now")
 
+    generation_mode = st.selectbox(
+        "Generation Mode",
+        ["Free demo mode", "OpenRouter API"],
+    )
+
     generate_image = st.checkbox(
         "Generate 3 paid images using OpenRouter",
         value=False,
+        disabled=generation_mode == "Free demo mode",
     )
 
     submitted = st.form_submit_button("Generate Campaign Pack")
@@ -72,7 +79,7 @@ if submitted:
             cta=cta,
         )
 
-        client = OpenRouterClient()
+        client = DemoClient() if generation_mode == "Free demo mode" else OpenRouterClient()
         orchestrator = CampaignOrchestrator(client)
 
         with st.spinner("Generating campaign pack..."):
@@ -91,6 +98,13 @@ if submitted:
 
         st.subheader("Executive Recommendation")
         st.write(pack["recommendation_note"])
+
+        st.subheader("Agent Reasoning")
+        for item in pack["decision_rationale"]:
+            with st.container(border=True):
+                st.markdown(f"**{item['step']}**")
+                st.markdown(f"**Input Signal:** {item['input_signal']}")
+                st.markdown(f"**Decision:** {item['decision']}")
 
         st.subheader("Campaign Brief")
         brief_summary = pack["brief_summary"]
@@ -144,6 +158,8 @@ if submitted:
                         caption=f"Poster Concept {i + 1}",
                         use_container_width=True,
                     )
+        elif generation_mode == "Free demo mode":
+            st.info("Free demo mode uses visual prompts instead of paid image generation.")
         else:
             st.info("Image generation was not selected.")
 
@@ -178,12 +194,40 @@ if submitted:
         st.subheader("A/B Testing Recommendation")
         st.write(pack["ab_test_note"])
 
+        kpi_plan = pack["kpi_plan"]
+        st.markdown(f"**Primary Metric:** {kpi_plan['primary_metric']}")
+        st.markdown(f"**Secondary Metrics:** {', '.join(kpi_plan['secondary_metrics'])}")
+        st.markdown(f"**Optimization Rule:** {kpi_plan['optimization_rule']}")
+
         for test in pack["ab_test_plan"]["tests"]:
             with st.container(border=True):
                 st.markdown(f"### Variant {test['variant']}")
                 st.markdown(f"**Headline:** {test['headline']}")
                 st.markdown(f"**Primary Text:** {test['primary_text']}")
                 st.markdown(f"**Success Metric:** {test['success_metric']}")
+
+        st.divider()
+
+        st.subheader("Reflection and Responsible Use")
+
+        reflection_col1, reflection_col2 = st.columns(2)
+
+        with reflection_col1:
+            st.markdown("**Assumptions**")
+            for item in pack["assumptions"]:
+                st.markdown(f"- {item}")
+
+            st.markdown("**Limitations**")
+            for item in pack["limitations"]:
+                st.markdown(f"- {item}")
+
+        with reflection_col2:
+            st.markdown("**Ethical Considerations**")
+            for item in pack["ethical_considerations"]:
+                st.markdown(f"- {item}")
+
+            st.markdown("**Real-World Use**")
+            st.write(pack["real_world_use"])
 
         st.divider()
 
