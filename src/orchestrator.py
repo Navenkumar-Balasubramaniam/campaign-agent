@@ -5,6 +5,7 @@ from src.agents.ab_test_agent import ABTestAgent
 from src.agents.report_agent import ReportAgent
 from src.agents.strategy_agent import StrategyAgent
 from src.agents.asset_agent import AssetAgent
+from src.agents.mockup_agent import MockupAgent
 
 
 class CampaignOrchestrator:
@@ -17,14 +18,20 @@ class CampaignOrchestrator:
         self.report_agent = ReportAgent()
         self.strategy_agent = StrategyAgent()
         self.asset_agent = AssetAgent()
+        self.mockup_agent = MockupAgent()
 
     def run(self, brief, generate_image=False):
         strategy = self.strategy_agent.generate(brief)
         copy = self.copy_agent.generate(brief)
         visuals = self.visual_agent.generate_prompts(brief)
         budget = self.budget_agent.generate(brief)
-        ab_tests = self.ab_test_agent.generate(copy, visuals["image_prompts"])
         mock_assets = self.asset_agent.generate(brief)
+        mockups = self.mockup_agent.generate(brief, copy, strategy)
+        ab_tests = self.ab_test_agent.generate(
+            copy,
+            visuals["image_prompts"],
+            mockups["assets"],
+        )
 
         image_urls = []
 
@@ -42,4 +49,5 @@ class CampaignOrchestrator:
             image_urls=image_urls,
             strategy=strategy,
             mock_assets=mock_assets,
+            mockups=mockups,
         )

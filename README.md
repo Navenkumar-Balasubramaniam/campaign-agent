@@ -1,14 +1,14 @@
 # AI Campaign Agent
 
-AI Campaign Agent is a Streamlit prototype that turns a short creative brief into a campaign pack for a marketing team. It produces campaign strategy, ad copy variants, visual concept prompts, mock asset sources, budget guidance, A/B testing recommendations, KPI guidance, and a reflection section for responsible use.
+AI Campaign Agent is a Streamlit prototype that turns a campaign trigger into a campaign pack for a marketing team. It produces campaign strategy, ad copy variants, visual concept prompts, offline mock creative previews, mock asset sources, budget guidance, A/B testing recommendations, KPI guidance, and a reflection section for responsible use.
 
 The project can run in **Free demo mode** without an OpenRouter API key. OpenRouter image generation is optional and should only be used if the team chooses to pay for API usage.
 
-The app includes an **Estrella beer mock campaign** preset so the group can present the project as if they are the marketing team for one beer brand. This keeps the demo focused and makes the output easier to explain.
+The app includes an **Estrella beer mock campaign** preset so the group can present the project as if they are the marketing team for one beer brand. The user can type an external trigger, such as "The sun is out so we want people to go to beer gardens or the park and enjoy a nice cold beer", and the agent turns that trigger into a full Estrella-aligned campaign.
 
 ## Marketing Problem
 
-Marketing teams often start with a rough campaign idea but still need to turn it into a practical launch plan. This agent helps by converting one structured brief into a first campaign pack that supports faster planning and clearer decision-making.
+Marketing teams often need to react quickly to external moments: weather, events, trends, seasonality, or cultural moments. This agent helps by converting a trigger sentence and structured brief into a first campaign pack that supports faster planning and clearer decision-making.
 
 ## Target User
 
@@ -17,14 +17,16 @@ The target user is a junior marketer, social media manager, or small marketing t
 ## Agent Workflow
 
 1. The user chooses a campaign preset or creates a custom campaign.
-2. The user enters a creative brief with brand, product, audience, goal, budget, channel, tone, duration, and CTA.
-3. The strategy agent creates a whole-campaign plan with positioning, message pillars, content plan, and launch checklist.
-4. The copy agent generates three ad copy variants.
-5. The visual agent creates three visual concept prompts for campaign posters.
-6. The asset agent suggests free mock/reference image sources for academic campaign concepts.
-7. The budget agent splits the budget across prospecting, retargeting, and creative testing.
-8. The A/B testing agent combines copy and visual options into a test matrix.
-9. The report agent assembles the final campaign pack, adds decision rationale, KPI guidance, limitations, and ethical considerations.
+2. The user enters a campaign trigger, such as sunny weather, an event, or a seasonal moment.
+3. The user enters a creative brief with brand, product, audience, goal, budget, channel, tone, duration, and CTA.
+4. The strategy agent creates a trigger-based campaign plan with positioning, message pillars, content plan, and launch checklist.
+5. The copy agent generates three ad copy variants.
+6. The visual agent creates three visual concept prompts for campaign posters.
+7. The mockup agent creates three offline mock creative image previews.
+8. The asset agent suggests free mock/reference image sources for academic campaign concepts.
+9. The budget agent splits the budget across prospecting, retargeting, and creative testing.
+10. The A/B testing agent combines copy, visual prompts, and mock assets into a test matrix.
+11. The report agent assembles the final campaign pack, adds decision rationale, KPI guidance, limitations, and ethical considerations.
 
 ## No-Cost Demo Mode
 
@@ -33,9 +35,11 @@ The default mode is **Free demo mode**. It does not call OpenRouter and does not
 Free demo mode includes:
 
 - Estrella beer mock campaign preset
+- Campaign trigger input
 - Whole campaign strategy
 - Campaign copy variants
 - Visual strategy prompts
+- Offline generated mock creative previews
 - Mock asset sources
 - Budget recommendation
 - A/B testing plan
@@ -93,6 +97,7 @@ src/orchestrator.py            Coordinates all agents
 src/agents/strategy_agent.py   Creates campaign strategy
 src/agents/copy_agent.py       Generates ad copy
 src/agents/visual_agent.py     Generates visual concept prompts
+src/agents/mockup_agent.py     Creates offline mock creative previews
 src/agents/asset_agent.py      Suggests mock image sources
 src/agents/budget_agent.py     Creates budget split
 src/agents/ab_test_agent.py    Creates A/B test matrix
@@ -106,6 +111,7 @@ docs/submission_guide.md       Assignment-ready write-up
 ## Limitations
 
 - Free demo mode is deterministic and does not use a live AI model.
+- Offline mock creative previews are draft layout assets, not AI-generated photography.
 - The prototype does not connect to live campaign, CRM, or competitor data.
 - Generated recommendations should be reviewed by a human marketer before real use.
 - Paid image generation is optional and not required for the academic demo.

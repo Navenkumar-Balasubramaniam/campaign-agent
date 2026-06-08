@@ -9,10 +9,12 @@ class ReportAgent:
         image_urls=None,
         strategy=None,
         mock_assets=None,
+        mockups=None,
     ):
         image_urls = image_urls or []
         strategy = strategy or {}
         mock_assets = mock_assets or {"assets": []}
+        mockups = mockups or {"assets": []}
         primary_metric = self._primary_metric(brief_summary["goal"])
         brand = brief_summary.get("brand", "the brand")
 
@@ -89,6 +91,7 @@ class ReportAgent:
         assumptions = [
             "The campaign is an early-stage academic prototype, not a live media plan.",
             "Audience and product details come from the user-provided brief.",
+            "The trigger sentence is treated as the reason the campaign should happen now.",
             "Budget recommendations are rule-based and should be checked against real platform data before launch.",
             "Mock assets are used for academic demonstration and do not replace official brand-approved creative.",
         ]
@@ -125,6 +128,7 @@ class ReportAgent:
                 "copy_variants": copy,
                 "visual_concepts": visuals,
                 "mock_assets": mock_assets,
+                "mockup_assets": mockups,
                 "generated_image_urls": image_urls,
                 "budget_plan": budget,
                 "budget_note": budget_note,

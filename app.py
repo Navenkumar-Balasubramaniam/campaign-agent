@@ -10,8 +10,12 @@ from src.orchestrator import CampaignOrchestrator
 CAMPAIGN_PRESETS = {
     "Estrella beer mock campaign": {
         "brand": "Estrella",
+        "campaign_trigger": (
+            "The sun is out so we want people to go to beer gardens or the park "
+            "and enjoy a nice cold beer."
+        ),
         "product": "Mediterranean-style beer",
-        "audience": "young adults aged 18-24 who enjoy social nights out",
+        "audience": "adults aged 18-24 who enjoy social nights out",
         "goal_index": 0,
         "budget": 1000,
         "channel_index": 0,
@@ -21,6 +25,7 @@ CAMPAIGN_PRESETS = {
     },
     "Custom campaign": {
         "brand": "Custom Brand",
+        "campaign_trigger": "A social moment that should trigger a campaign.",
         "product": "Organic Herbal Tea",
         "audience": "Women aged 25-45 interested in wellness and natural products",
         "goal_index": 0,
@@ -49,6 +54,12 @@ with st.form("campaign_brief"):
     st.subheader("Creative Brief")
 
     brand = st.text_input("Company / Brand", preset["brand"])
+
+    campaign_trigger = st.text_area(
+        "Campaign Trigger",
+        preset["campaign_trigger"],
+        help="Describe the external moment or event the campaign should react to.",
+    )
 
     product = st.text_input("Product", preset["product"])
 
@@ -106,6 +117,7 @@ if submitted:
     try:
         brief = CampaignBrief(
             brand=brand,
+            campaign_trigger=campaign_trigger,
             product=product,
             audience=audience,
             goal=goal,
@@ -138,10 +150,17 @@ if submitted:
 
         st.subheader("Campaign Strategy")
         strategy = pack["campaign_strategy"]
+        brand_profile = strategy["brand_profile"]
         st.markdown(f"**Campaign Name:** {strategy['campaign_name']}")
+        st.markdown(f"**Trigger:** {strategy['trigger']}")
         st.markdown(f"**Objective:** {strategy['objective']}")
         st.markdown(f"**Target Insight:** {strategy['target_insight']}")
         st.markdown(f"**Positioning:** {strategy['positioning']}")
+
+        st.markdown("**Brand Alignment**")
+        st.markdown(f"**Brand Context:** {brand_profile['brand_context']}")
+        st.markdown(f"**Tone:** {brand_profile['tone']}")
+        st.markdown(f"**Mission:** {brand_profile['mission']}")
 
         st.markdown("**Message Pillars**")
         for pillar in strategy["message_pillars"]:
@@ -168,6 +187,7 @@ if submitted:
 
         with col1:
             st.markdown(f"**Brand:** {brief_summary['brand']}")
+            st.markdown(f"**Trigger:** {brief_summary['campaign_trigger']}")
             st.markdown(f"**Product:** {brief_summary['product']}")
             st.markdown(f"**Audience:** {brief_summary['audience']}")
             st.markdown(f"**Goal:** {brief_summary['goal']}")
@@ -218,6 +238,19 @@ if submitted:
             st.info("Free demo mode uses visual prompts instead of paid image generation.")
         else:
             st.info("Image generation was not selected.")
+
+        st.subheader("Generated Mock Creative Assets")
+        mockup_assets = pack["mockup_assets"]
+        st.caption(mockup_assets["generation_note"])
+
+        mockup_cols = st.columns(3)
+        for i, asset in enumerate(mockup_assets["assets"]):
+            with mockup_cols[i % 3]:
+                with st.container(border=True):
+                    st.image(asset["image_data_url"], caption=asset["format"], use_container_width=True)
+                    st.markdown(f"**Variant {asset['variant']}: {asset['headline']}**")
+                    st.write(asset["body"])
+                    st.caption(asset["design_notes"])
 
         st.divider()
 
@@ -278,6 +311,8 @@ if submitted:
                 st.markdown(f"### Variant {test['variant']}")
                 st.markdown(f"**Headline:** {test['headline']}")
                 st.markdown(f"**Primary Text:** {test['primary_text']}")
+                if test.get("mockup_asset"):
+                    st.markdown(f"**Mockup Asset:** {test['mockup_asset']}")
                 st.markdown(f"**Success Metric:** {test['success_metric']}")
 
         st.divider()

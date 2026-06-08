@@ -39,3 +39,4 @@ def test_orchestrator_generates_campaign_pack():
     assert "decision_rationale" in result["campaign_pack"]
     assert "campaign_strategy" in result["campaign_pack"]
     assert "mock_assets" in result["campaign_pack"]
+    assert len(result["campaign_pack"]["mockup_assets"]["assets"]) == 3

@@ -21,6 +21,7 @@ def test_report_agent_combines_sections():
         image_urls=["https://example.com/image.png"],
         strategy={"campaign_name": "Test Campaign"},
         mock_assets={"assets": [{"title": "Test Asset"}]},
+        mockups={"assets": [{"format": "Instagram Feed Ad"}]},
     )
 
     assert result["campaign_pack"]["brief_summary"]["product"] == "Tea"
@@ -31,3 +32,4 @@ def test_report_agent_combines_sections():
     assert len(result["campaign_pack"]["ethical_considerations"]) > 0
     assert result["campaign_pack"]["campaign_strategy"]["campaign_name"] == "Test Campaign"
     assert result["campaign_pack"]["mock_assets"]["assets"][0]["title"] == "Test Asset"
+    assert result["campaign_pack"]["mockup_assets"]["assets"][0]["format"] == "Instagram Feed Ad"

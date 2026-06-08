@@ -1,3 +1,6 @@
+from src.brand_profiles import get_brand_profile
+
+
 class StrategyAgent:
     def generate(self, brief):
         brand = brief.brand
@@ -6,29 +9,35 @@ class StrategyAgent:
         goal = brief.goal
         channel = brief.channel
         tone = brief.tone
+        trigger = brief.campaign_trigger
+        brand_profile = get_brand_profile(brand)
+        trigger_theme = self._trigger_theme(trigger)
 
         return {
-            "campaign_name": f"{brand} Social Pour",
+            "brand_profile": brand_profile,
+            "trigger": trigger,
+            "trigger_theme": trigger_theme,
+            "campaign_name": f"{brand} {trigger_theme['name']}",
             "objective": (
-                f"Create a {channel} campaign that turns interest in {product} "
-                f"into measurable {goal.lower()} outcomes."
+                f"React to this external trigger: '{trigger}'. Create a {channel} "
+                f"campaign that turns the moment into measurable {goal.lower()} outcomes."
             ),
             "target_insight": (
-                f"{audience} are more likely to respond to beer advertising when "
-                "the message feels social, easy to share, and connected to real moments."
+                f"{audience} are more likely to respond when the campaign feels timely, "
+                "social, easy to share, and connected to a real-world moment."
             ),
             "positioning": (
-                f"Position {brand} as a beer for relaxed social occasions, using a "
-                f"{tone.lower()} tone while keeping the campaign responsible and age-aware."
+                f"Position {brand} as the beer for this moment, using a {tone.lower()} "
+                f"tone while staying aligned with the brand profile: {brand_profile['tone']}"
             ),
             "message_pillars": [
                 {
-                    "pillar": "Social energy",
-                    "message": "Show the beer as part of shared moments with friends.",
+                    "pillar": "Moment trigger",
+                    "message": trigger_theme["message"],
                 },
                 {
-                    "pillar": "Product appeal",
-                    "message": "Keep the bottle, glass, or pour visually clear in every concept.",
+                    "pillar": "Estrella fit",
+                    "message": brand_profile["mission"],
                 },
                 {
                     "pillar": "Simple action",
@@ -39,19 +48,19 @@ class StrategyAgent:
                 {
                     "phase": "Launch",
                     "format": "Instagram feed ad",
-                    "concept": "Hero product shot with clear CTA and clean brand framing.",
-                    "purpose": "Establish the campaign and test product-led response.",
+                    "concept": trigger_theme["feed_concept"],
+                    "purpose": "Launch the timely campaign with a clear brand moment.",
                 },
                 {
                     "phase": "Engage",
                     "format": "Instagram story",
-                    "concept": "Lifestyle scene with friends, warm light, and short copy.",
-                    "purpose": "Test social/lifestyle relevance with the target audience.",
+                    "concept": trigger_theme["story_concept"],
+                    "purpose": "Test whether the trigger creates fast social engagement.",
                 },
                 {
                     "phase": "Convert",
                     "format": "Retargeting ad",
-                    "concept": "Direct offer-style creative using the strongest headline.",
+                    "concept": trigger_theme["retargeting_concept"],
                     "purpose": "Move interested viewers toward the sales CTA.",
                 },
             ],
@@ -62,4 +71,36 @@ class StrategyAgent:
                 "Track CTR during early testing and conversion rate after learning period.",
                 "Shift budget toward the best-performing creative.",
             ],
+        }
+
+    def _trigger_theme(self, trigger):
+        trigger_lower = trigger.lower()
+
+        if any(word in trigger_lower for word in ["sun", "hot", "weather", "park"]):
+            return {
+                "name": "Sun's Out Sessions",
+                "message": (
+                    "Connect sunny weather with responsible outdoor social moments: "
+                    "beer gardens, parks, terraces, and cold refreshment."
+                ),
+                "feed_concept": (
+                    "A sunny beer garden or park-inspired feed ad with a cold Estrella, "
+                    "warm daylight, and a simple sales CTA."
+                ),
+                "story_concept": (
+                    "A vertical story creative that starts with sunshine and ends with "
+                    "a clear plan: meet friends, choose a spot, enjoy an Estrella responsibly."
+                ),
+                "retargeting_concept": (
+                    "A product-led reminder ad focused on cold beer, outdoor plans, "
+                    "and the Shop Now CTA."
+                ),
+            }
+
+        return {
+            "name": "Moment Maker",
+            "message": "Turn the external trigger into a timely social reason to choose the brand.",
+            "feed_concept": "A feed ad that connects the trigger to a clear product moment.",
+            "story_concept": "A story ad that makes the trigger feel immediate and shareable.",
+            "retargeting_concept": "A direct reminder ad using the strongest campaign message.",
         }

@@ -5,6 +5,7 @@ class DemoClient:
         audience = brief.audience
         cta = brief.cta
         goal = brief.goal.lower()
+        trigger = brief.campaign_trigger.lower()
 
         if "awareness" in goal:
             angle = "discover"
@@ -15,6 +16,28 @@ class DemoClient:
         else:
             angle = "try"
             benefit = "made to turn interest into action"
+
+        if any(word in trigger for word in ["sun", "park", "beer garden", "hot"]):
+            headlines = [
+                "Sun's Out. Estrella Out.",
+                "Cold Estrella, Warm Days",
+                "Meet Where The Sun Is",
+            ]
+            primary_texts = [
+                (
+                    "The sun is out, so the plan is simple: find a terrace, beer garden, "
+                    "or park spot and enjoy a cold Estrella responsibly."
+                ),
+                (
+                    f"Turn good weather into a social moment for {audience}. "
+                    "This route keeps the tone bright, Mediterranean, and easy to act on."
+                ),
+                (
+                    f"A direct {cta} version for people already thinking about outdoor plans, "
+                    "cold drinks, and meeting friends."
+                ),
+            ]
+            return {"headlines": headlines, "primary_texts": primary_texts, "ctas": [cta, "Find Your Spot"]}
 
         return {
             "headlines": [
