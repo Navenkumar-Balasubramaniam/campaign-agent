@@ -50,6 +50,13 @@ class OpenRouterClient:
             )
 
         data = response.json()
+
+        if "choices" not in data:
+            error = data.get("error", data)
+            if isinstance(error, dict):
+                error = error.get("message", str(error))
+            raise RuntimeError(f"OpenRouter error: {error}")
+
         message = data["choices"][0]["message"]
         content = message.get("content", "")
 

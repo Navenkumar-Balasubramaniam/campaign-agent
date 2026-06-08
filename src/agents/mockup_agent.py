@@ -1,154 +1,336 @@
 import base64
+import urllib.request
 from io import BytesIO
 from textwrap import wrap
 
 from PIL import Image, ImageDraw, ImageFont
 
 
+_PRODUCT_URL = (
+    "https://upload.wikimedia.org/wikipedia/commons/b/bc/Estrella2014.jpg"
+)
+_LIFESTYLE_URL = (
+    "https://images.unsplash.com/photo-1575037614876-c38a4d44f5b8"
+    "?w=1080&q=80"
+)
+
+_image_cache = {}
+
+
+def _fetch_image(url):
+    if url in _image_cache:
+        return _image_cache[url]
+    try:
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            img = Image.open(BytesIO(resp.read())).convert("RGBA")
+            _image_cache[url] = img
+            return img
+    except Exception:
+        return None
+
+
+def _fit_cover(img, target_w, target_h):
+    src_w, src_h = img.size
+    scale = max(target_w / src_w, target_h / src_h)
+    new_w, new_h = int(src_w * scale), int(src_h * scale)
+    img = img.resize((new_w, new_h), Image.LANCZOS)
+    left = (new_w - target_w) // 2
+    top = (new_h - target_h) // 2
+    return img.crop((left, top, left + target_w, top + target_h))
+
+
+def _gradient_overlay(width, height, alpha_top=0, alpha_bottom=200):
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    d = ImageDraw.Draw(overlay)
+    for y in range(height):
+        a = int(alpha_top + (alpha_bottom - alpha_top) * y / height)
+        d.rectangle([0, y, width, y + 1], fill=(0, 0, 0, a))
+    return overlay
+
+
 class MockupAgent:
     def generate(self, brief, copy, strategy):
         headlines = copy["headlines"]
         primary_texts = copy["primary_texts"]
+
+        product_img = _fetch_image(_PRODUCT_URL)
+        lifestyle_img = _fetch_image(_LIFESTYLE_URL)
+
         formats = [
-            ("A", "Instagram Feed Ad", (1080, 1080), "sun"),
-            ("B", "Instagram Story Ad", (1080, 1600), "park"),
-            ("C", "Retargeting Product Ad", (1080, 1080), "product"),
+            ("A", "Instagram Feed Ad",
+             (1080, 1080), "lifestyle", lifestyle_img),
+            ("B", "Instagram Story Ad",
+             (1080, 1600), "lifestyle", lifestyle_img),
+            ("C", "Retargeting Product Ad",
+             (1080, 1080), "product", product_img),
         ]
 
         assets = []
-        for index, (variant, ad_format, size, layout) in enumerate(formats):
-            headline = headlines[index % len(headlines)]
-            body = primary_texts[index % len(primary_texts)]
-            image_data_url = self._render_mockup(
-                brief=brief,
-                strategy=strategy,
-                variant=variant,
-                ad_format=ad_format,
-                size=size,
-                layout=layout,
-                headline=headline,
-                body=body,
+        for idx, (variant, ad_format, size, layout, photo) in enumerate(
+            formats
+        ):
+            headline = headlines[idx % len(headlines)]
+            body = primary_texts[idx % len(primary_texts)]
+            image_data_url = self._render(
+                brief, ad_format, size, layout, headline, body, photo
             )
-            assets.append(
-                {
-                    "variant": variant,
-                    "format": ad_format,
-                    "headline": headline,
-                    "body": body,
-                    "image_data_url": image_data_url,
-                    "design_notes": (
-                        "Offline mock creative generated for academic demo. Use OpenRouter "
-                        "or approved brand photography for final high-fidelity visuals."
-                    ),
-                }
-            )
+            assets.append({
+                "variant": variant,
+                "format": ad_format,
+                "headline": headline,
+                "body": body,
+                "image_data_url": image_data_url,
+                "design_notes": (
+                    "Draft layout generated locally for academic demo. "
+                    "Use approved brand photography for production visuals."
+                ),
+            })
 
         return {
             "generation_note": (
-                "These mock creative assets are generated locally in free demo mode. "
-                "They are not official Estrella assets and should be treated as draft layouts."
+                "Mock creative assets generated locally in free demo mode. "
+                "Not official brand assets — treat as draft layouts."
             ),
             "assets": assets,
         }
 
-    def _render_mockup(self, brief, strategy, variant, ad_format, size, layout, headline, body):
+    # ------------------------------------------------------------------
+
+    def _render(self, brief, ad_format, size, layout, headline, body, photo):
         width, height = size
-        image = Image.new("RGB", size, "#B5121B")
-        draw = ImageDraw.Draw(image)
+        RED = (181, 18, 27)
+        DARK_RED = (122, 11, 18)
+        GOLD = (245, 197, 66)
+        CREAM = (255, 244, 214)
+        WHITE = (255, 255, 255)
 
-        red = "#B5121B"
-        deep_red = "#7A0B12"
-        gold = "#F5C542"
-        cream = "#FFF4D6"
-        green = "#1E6B45"
-        white = "#FFFFFF"
+        canvas = Image.new("RGB", (width, height), RED)
 
-        draw.rectangle([0, 0, width, height], fill=red)
-        draw.rectangle([0, int(height * 0.68), width, height], fill=green if layout != "product" else deep_red)
-
-        if layout == "sun":
-            draw.ellipse([width - 290, 70, width - 70, 290], fill=gold)
-            draw.rectangle([0, int(height * 0.70), width, height], fill="#267A4E")
-        elif layout == "park":
-            draw.ellipse([width - 260, 80, width - 80, 260], fill=gold)
-            for x in range(80, width, 220):
-                draw.rectangle([x, int(height * 0.70), x + 26, int(height * 0.88)], fill="#6B3F1D")
-                draw.ellipse([x - 52, int(height * 0.62), x + 78, int(height * 0.74)], fill="#2E8B57")
+        if layout == "lifestyle":
+            self._draw_lifestyle(
+                canvas, brief, ad_format, size,
+                headline, body, photo,
+                RED, DARK_RED, GOLD, CREAM, WHITE,
+            )
         else:
-            draw.ellipse([width - 250, 90, width - 70, 270], fill=gold)
+            self._draw_product(
+                canvas, brief, ad_format, size,
+                headline, body, photo,
+                RED, DARK_RED, GOLD, CREAM, WHITE,
+            )
 
-        self._draw_star(draw, 115, 120, 62, 28, gold)
-        self._draw_bottle(draw, width // 2, int(height * 0.58), max(220, width // 5), cream, gold, deep_red)
+        buf = BytesIO()
+        canvas.save(buf, format="PNG")
+        return "data:image/png;base64," + base64.b64encode(
+            buf.getvalue()
+        ).decode("ascii")
 
-        brand_font = self._font(56, bold=True)
-        headline_size = 74 if height <= 1100 else 82
+    def _draw_lifestyle(
+        self, canvas, brief, ad_format, size,
+        headline, body, photo,
+        RED, DARK_RED, GOLD, CREAM, WHITE,
+    ):
+        width, height = size
+        pad = 72
+
+        # Full-bleed background photo with dark gradient
+        if photo:
+            bg = _fit_cover(photo.convert("RGB"), width, height)
+            canvas.paste(bg, (0, 0))
+            overlay = _gradient_overlay(
+                width, height, alpha_top=40, alpha_bottom=230
+            )
+            canvas.paste(overlay, (0, 0), overlay)
+        else:
+            d = ImageDraw.Draw(canvas)
+            d.rectangle([0, 0, width, height], fill=RED)
+            d.rectangle(
+                [0, int(height * 0.65), width, height],
+                fill=(30, 107, 69),
+            )
+
+        draw = ImageDraw.Draw(canvas)
+
+        # Brand + format label
+        draw.text(
+            (pad, 52),
+            brief.brand.upper(),
+            fill=GOLD,
+            font=self._font(52, bold=True),
+        )
+        draw.text(
+            (pad, 116),
+            ad_format.upper(),
+            fill=CREAM,
+            font=self._font(26),
+        )
+
+        # Compute bottom text block
+        hl_size = 76 if height <= 1100 else 88
         body_size = 34 if height <= 1100 else 40
-        headline_font = self._font(headline_size, bold=True)
-        body_font = self._font(body_size)
-        small_font = self._font(28)
+        body_wrap = 44 if height <= 1100 else 34
+        hl_lines = wrap(headline, width=20)
+        body_lines = wrap(body, width=body_wrap)[:3]
 
-        draw.text((200, 82), brief.brand.upper(), fill=white, font=brand_font)
-        draw.text((86, int(height * 0.19)), ad_format.upper(), fill=cream, font=small_font)
+        hl_block = len(hl_lines) * int(hl_size * 1.15)
+        body_block = len(body_lines) * int(body_size * 1.35)
+        cta_h = 90
+        legal_h = 44
+        total = hl_block + 24 + body_block + 32 + cta_h + 20 + legal_h
+        y = height - total - pad
 
-        y = int(height * 0.25)
-        for line in wrap(headline, width=18):
-            draw.text((82, y), line, fill=white, font=headline_font)
-            y += int(headline_size * 1.05)
+        for line in hl_lines:
+            draw.text(
+                (pad, y), line, fill=WHITE, font=self._font(hl_size, bold=True)
+            )
+            y += int(hl_size * 1.15)
+
+        y += 24
+        for line in body_lines:
+            draw.text(
+                (pad, y), line, fill=CREAM, font=self._font(body_size)
+            )
+            y += int(body_size * 1.35)
+
+        y += 32
+        cta_font = self._font(32, bold=True)
+        btn_w = max(
+            280,
+            self._text_width(brief.cta.upper(), cta_font) + 80,
+        )
+        draw.rounded_rectangle(
+            [pad, y, pad + btn_w, y + cta_h], radius=20, fill=GOLD
+        )
+        draw.text(
+            (pad + 36, y + 22),
+            brief.cta.upper(),
+            fill=DARK_RED,
+            font=cta_font,
+        )
+
+        draw.text(
+            (pad, y + cta_h + 16),
+            "Enjoy responsibly. Legal drinking age only.",
+            fill=CREAM,
+            font=self._font(24),
+        )
+
+    def _draw_product(
+        self, canvas, brief, ad_format, size,
+        headline, body, photo,
+        RED, DARK_RED, GOLD, CREAM, WHITE,
+    ):
+        width, height = size
+        pad = 72
+        split = int(height * 0.52)
+
+        if photo:
+            ph = _fit_cover(photo.convert("RGB"), width, split)
+            canvas.paste(ph, (0, 0))
+            fade = _gradient_overlay(
+                width, split, alpha_top=0, alpha_bottom=130
+            )
+            canvas.paste(fade, (0, 0), fade)
+        else:
+            d = ImageDraw.Draw(canvas)
+            d.rectangle([0, 0, width, split], fill=DARK_RED)
+
+        draw = ImageDraw.Draw(canvas)
+
+        draw.text(
+            (pad, 48),
+            brief.brand.upper(),
+            fill=GOLD,
+            font=self._font(54, bold=True),
+        )
+        draw.text(
+            (pad, 114),
+            ad_format.upper(),
+            fill=CREAM,
+            font=self._font(26),
+        )
+
+        # Text zone
+        draw.rectangle([0, split, width, height], fill=DARK_RED)
+        draw.rectangle([pad, split, width - pad, split + 4], fill=GOLD)
+
+        y = split + 32
+        hl_size = 70
+        for line in wrap(headline, width=22):
+            draw.text(
+                (pad, y), line, fill=WHITE,
+                font=self._font(hl_size, bold=True),
+            )
+            y += int(hl_size * 1.1)
 
         y += 18
-        for line in wrap(body, width=38 if height <= 1100 else 30)[:4]:
-            draw.text((86, y), line, fill=cream, font=body_font)
-            y += int(body_size * 1.25)
+        body_size = 32
+        for line in wrap(body, width=44)[:3]:
+            draw.text(
+                (pad, y), line, fill=CREAM, font=self._font(body_size)
+            )
+            y += int(body_size * 1.35)
 
-        cta_text = brief.cta.upper()
-        cta_y = height - 150
-        draw.rounded_rectangle([82, cta_y, 82 + 320, cta_y + 78], radius=22, fill=gold)
-        draw.text((112, cta_y + 21), cta_text, fill=deep_red, font=self._font(32, bold=True))
+        y += 24
+        cta_font = self._font(30, bold=True)
+        btn_w = max(
+            260,
+            self._text_width(brief.cta.upper(), cta_font) + 80,
+        )
+        cta_h = 76
+        draw.rounded_rectangle(
+            [pad, y, pad + btn_w, y + cta_h], radius=18, fill=GOLD
+        )
+        draw.text(
+            (pad + 32, y + 20),
+            brief.cta.upper(),
+            fill=DARK_RED,
+            font=cta_font,
+        )
 
-        legal = "Enjoy responsibly. Legal drinking age only."
-        draw.text((82, height - 54), legal, fill=cream, font=self._font(24))
+        draw.text(
+            (pad, height - 40),
+            "Enjoy responsibly. Legal drinking age only.",
+            fill=CREAM,
+            font=self._font(22),
+        )
 
-        buffer = BytesIO()
-        image.save(buffer, format="PNG")
-        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-        return f"data:image/png;base64,{encoded}"
+    # ------------------------------------------------------------------
 
-    def _draw_bottle(self, draw, cx, cy, height, fill, gold, red):
-        bottle_w = int(height * 0.22)
-        bottle_h = height
-        neck_w = int(bottle_w * 0.42)
-        x0 = cx - bottle_w // 2
-        y0 = cy - bottle_h // 2
-        x1 = cx + bottle_w // 2
-        y1 = cy + bottle_h // 2
-
-        draw.rounded_rectangle([x0, y0 + 110, x1, y1], radius=40, fill="#4A2414")
-        draw.rectangle([cx - neck_w // 2, y0 + 35, cx + neck_w // 2, y0 + 145], fill="#4A2414")
-        draw.rectangle([cx - neck_w // 2 - 10, y0 + 25, cx + neck_w // 2 + 10, y0 + 50], fill=gold)
-        draw.rounded_rectangle([x0 + 18, cy - 25, x1 - 18, cy + 110], radius=24, fill=fill)
-        self._draw_star(draw, cx, cy + 16, 38, 17, red)
-        draw.text((cx - 62, cy + 62), "ESTRELLA", fill=red, font=self._font(22, bold=True))
-
-    def _draw_star(self, draw, cx, cy, outer, inner, fill):
-        import math
-
-        points = []
-        for i in range(10):
-            radius = outer if i % 2 == 0 else inner
-            angle = math.pi / 2 + i * math.pi / 5
-            points.append((cx + radius * math.cos(angle), cy - radius * math.sin(angle)))
-        draw.polygon(points, fill=fill)
+    def _text_width(self, text, font):
+        try:
+            bbox = font.getbbox(text)
+            return bbox[2] - bbox[0]
+        except Exception:
+            return len(text) * 18
 
     def _font(self, size, bold=False):
         candidates = [
-            "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
-            "/Library/Fonts/Arial Bold.ttf" if bold else "/Library/Fonts/Arial.ttf",
+            "C:/Windows/Fonts/arialbd.ttf"
+            if bold else "C:/Windows/Fonts/arial.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+            if bold else
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/Library/Fonts/Arial Bold.ttf"
+            if bold else "/Library/Fonts/Arial.ttf",
+            "/usr/share/fonts/truetype/liberation/"
+            "LiberationSans-Bold.ttf"
+            if bold else
+            "/usr/share/fonts/truetype/liberation/"
+            "LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            if bold else
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         ]
-
         for path in candidates:
             try:
                 return ImageFont.truetype(path, size)
             except OSError:
                 continue
-
-        return ImageFont.load_default()
+        try:
+            return ImageFont.load_default(size=size)
+        except TypeError:
+            return ImageFont.load_default()
