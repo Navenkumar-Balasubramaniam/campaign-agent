@@ -8,7 +8,7 @@ class Settings:
     OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
     TEXT_MODEL = os.getenv(
         "OPENROUTER_TEXT_MODEL",
-        "nvidia/nemotron-3-super-120b-a12b:free",
+        "google/gemma-4-31b-it:free",
     )
     IMAGE_MODEL = os.getenv(
         "OPENROUTER_IMAGE_MODEL",

@@ -99,16 +99,23 @@ class ReportAgent:
         limitations = [
             "The prototype does not connect to live ad performance, CRM, or competitor data.",
             "Generated copy still needs human review for brand accuracy and platform policy compliance.",
-            "Image generation may require a paid API, so the free demo mode focuses on text, strategy, and visual prompts.",
-            "Free stock or Commons images may still need review for trademark, model-release, and brand-approval issues.",
+            "AI image generation incurs API cost; mock creative assets are provided as draft layouts.",
+            "Reference images may still need review for trademark, model-release, and brand-approval issues.",
         ]
 
         ethical_considerations = [
             "Avoid targeting vulnerable groups or making misleading product claims.",
-            "Review age-sensitive categories, such as alcohol or health products, before publishing.",
-            "For beer campaigns, target only users who are legally allowed to buy alcohol in the relevant market.",
+            "Review any age-sensitive or regulated product category before publishing.",
             "Keep a human marketer responsible for final approval and campaign monitoring.",
         ]
+
+        if self._is_alcohol(brief_summary.get("product", "")):
+            ethical_considerations.insert(
+                2,
+                "For alcohol products, target only users who are of legal "
+                "drinking age in the relevant market and follow all platform "
+                "alcohol advertising policies.",
+            )
 
         kpi_plan = {
             "primary_metric": primary_metric,
@@ -145,6 +152,14 @@ class ReportAgent:
                 "launch_status": "Ready for academic demo review",
             }
         }
+
+    def _is_alcohol(self, product):
+        keywords = {
+            "beer", "wine", "spirits", "alcohol", "lager", "ale",
+            "whiskey", "whisky", "vodka", "gin", "rum", "cocktail",
+            "liquor", "brew", "cider", "champagne", "prosecco",
+        }
+        return any(kw in product.lower() for kw in keywords)
 
     def _primary_metric(self, goal):
         goal = goal.lower()

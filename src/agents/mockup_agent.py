@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import urllib.request
 from io import BytesIO
 from textwrap import wrap
@@ -6,25 +7,54 @@ from textwrap import wrap
 from PIL import Image, ImageDraw, ImageFont
 
 
-_PRODUCT_URL = (
-    "https://upload.wikimedia.org/wikipedia/commons/b/bc/Estrella2014.jpg"
-)
-_LIFESTYLE_URL = (
-    "https://images.unsplash.com/photo-1575037614876-c38a4d44f5b8"
-    "?w=1080&q=80"
-)
+_ALCOHOL_KEYWORDS = {
+    "beer", "wine", "spirits", "alcohol", "lager", "ale",
+    "whiskey", "whisky", "vodka", "gin", "rum", "cocktail",
+    "liquor", "brew", "cider", "champagne", "prosecco",
+}
+
+_PALETTES = [
+    # 0 — navy / electric blue
+    {"bg": (15, 23, 42), "panel": (10, 15, 30),
+     "accent": (96, 165, 250), "text": (255, 255, 255),
+     "subtext": (186, 210, 250), "cta_text": (10, 15, 30)},
+    # 1 — charcoal / coral
+    {"bg": (30, 27, 27), "panel": (20, 18, 18),
+     "accent": (239, 100, 78), "text": (255, 255, 255),
+     "subtext": (220, 210, 210), "cta_text": (255, 255, 255)},
+    # 2 — forest / cream
+    {"bg": (20, 52, 36), "panel": (12, 35, 24),
+     "accent": (250, 235, 195), "text": (255, 255, 255),
+     "subtext": (200, 230, 210), "cta_text": (12, 35, 24)},
+    # 3 — midnight / sky
+    {"bg": (10, 10, 35), "panel": (5, 5, 22),
+     "accent": (56, 189, 248), "text": (255, 255, 255),
+     "subtext": (186, 230, 253), "cta_text": (5, 5, 22)},
+    # 4 — warm black / amber
+    {"bg": (24, 18, 10), "panel": (15, 10, 5),
+     "accent": (251, 191, 36), "text": (255, 255, 255),
+     "subtext": (240, 220, 180), "cta_text": (15, 10, 5)},
+]
 
 _image_cache = {}
 
 
-def _fetch_image(url):
+def _brand_seed(brand: str) -> int:
+    return int(hashlib.md5(brand.encode()).hexdigest(), 16) % 900
+
+
+def _pick_palette(brand: str) -> dict:
+    return _PALETTES[sum(ord(c) for c in brand) % len(_PALETTES)]
+
+
+def _fetch_image(url: str):
     if url in _image_cache:
         return _image_cache[url]
     try:
         req = urllib.request.Request(
             url, headers={"User-Agent": "Mozilla/5.0"}
         )
-        with urllib.request.urlopen(req, timeout=6) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             img = Image.open(BytesIO(resp.read())).convert("RGBA")
             _image_cache[url] = img
             return img
@@ -32,94 +62,103 @@ def _fetch_image(url):
         return None
 
 
-def _fit_cover(img, target_w, target_h):
+def _photo_url(seed: int, w: int, h: int) -> str:
+    return f"https://picsum.photos/seed/{seed}/{w}/{h}"
+
+
+def _fit_cover(img: Image.Image, w: int, h: int) -> Image.Image:
     src_w, src_h = img.size
-    scale = max(target_w / src_w, target_h / src_h)
-    new_w, new_h = int(src_w * scale), int(src_h * scale)
-    img = img.resize((new_w, new_h), Image.LANCZOS)
-    left = (new_w - target_w) // 2
-    top = (new_h - target_h) // 2
-    return img.crop((left, top, left + target_w, top + target_h))
+    scale = max(w / src_w, h / src_h)
+    nw, nh = int(src_w * scale), int(src_h * scale)
+    img = img.resize((nw, nh), Image.LANCZOS)
+    left, top = (nw - w) // 2, (nh - h) // 2
+    return img.crop((left, top, left + w, top + h))
 
 
-def _gradient_overlay(width, height, alpha_top=0, alpha_bottom=200):
-    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+def _dark_overlay(w: int, h: int, a_top: int = 0, a_bottom: int = 210):
+    """Black gradient overlay — paste using itself as mask."""
+    overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(overlay)
-    for y in range(height):
-        a = int(alpha_top + (alpha_bottom - alpha_top) * y / height)
-        d.rectangle([0, y, width, y + 1], fill=(0, 0, 0, a))
+    for y in range(h):
+        a = int(a_top + (a_bottom - a_top) * y / h)
+        d.rectangle([0, y, w, y + 1], fill=(0, 0, 0, a))
     return overlay
+
+
+def _is_alcohol(product: str) -> bool:
+    return any(kw in product.lower() for kw in _ALCOHOL_KEYWORDS)
 
 
 class MockupAgent:
     def generate(self, brief, copy, strategy):
         headlines = copy["headlines"]
         primary_texts = copy["primary_texts"]
-
-        product_img = _fetch_image(_PRODUCT_URL)
-        lifestyle_img = _fetch_image(_LIFESTYLE_URL)
+        palette = _pick_palette(brief.brand)
+        seed = _brand_seed(brief.brand)
+        legal = (
+            "Enjoy responsibly. Legal drinking age only."
+            if _is_alcohol(brief.product)
+            else "Terms and conditions apply."
+        )
 
         formats = [
-            ("A", "Instagram Feed Ad",
-             (1080, 1080), "lifestyle", lifestyle_img),
-            ("B", "Instagram Story Ad",
-             (1080, 1600), "lifestyle", lifestyle_img),
-            ("C", "Retargeting Product Ad",
-             (1080, 1080), "product", product_img),
+            ("A", "Feed Ad",    (1080, 1080), "feed",    seed),
+            ("B", "Story Ad",   (1080, 1920), "story",   seed + 1),
+            ("C", "Product Ad", (1080, 1080), "product", seed + 2),
         ]
 
         assets = []
-        for idx, (variant, ad_format, size, layout, photo) in enumerate(
-            formats
-        ):
+        for idx, (variant, label, size, layout, pseed) in enumerate(formats):
             headline = headlines[idx % len(headlines)]
             body = primary_texts[idx % len(primary_texts)]
-            image_data_url = self._render(
-                brief, ad_format, size, layout, headline, body, photo
+            url = self._render(
+                brief, label, size, layout,
+                headline, body, palette, pseed, legal,
             )
             assets.append({
                 "variant": variant,
-                "format": ad_format,
+                "format": f"{brief.channel} {label}",
                 "headline": headline,
                 "body": body,
-                "image_data_url": image_data_url,
+                "image_data_url": url,
                 "design_notes": (
-                    "Draft layout generated locally for academic demo. "
-                    "Use approved brand photography for production visuals."
+                    "Draft layout for academic demo. "
+                    "Replace with brand-approved photography for production."
                 ),
             })
 
         return {
             "generation_note": (
-                "Mock creative assets generated locally in free demo mode. "
-                "Not official brand assets — treat as draft layouts."
+                "Mock creative assets are draft layouts only. "
+                "They are not official brand assets."
             ),
             "assets": assets,
         }
 
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ #
 
-    def _render(self, brief, ad_format, size, layout, headline, body, photo):
-        width, height = size
-        RED = (181, 18, 27)
-        DARK_RED = (122, 11, 18)
-        GOLD = (245, 197, 66)
-        CREAM = (255, 244, 214)
-        WHITE = (255, 255, 255)
+    def _render(
+        self, brief, label, size, layout,
+        headline, body, palette, pseed, legal,
+    ):
+        w, h = size
+        photo = _fetch_image(_photo_url(pseed, w, h))
+        canvas = Image.new("RGB", (w, h), palette["bg"])
 
-        canvas = Image.new("RGB", (width, height), RED)
-
-        if layout == "lifestyle":
-            self._draw_lifestyle(
-                canvas, brief, ad_format, size,
-                headline, body, photo,
-                RED, DARK_RED, GOLD, CREAM, WHITE,
+        if layout == "feed":
+            self._draw_feed(
+                canvas, brief, label, size,
+                headline, body, palette, photo, legal,
+            )
+        elif layout == "story":
+            self._draw_story(
+                canvas, brief, label, size,
+                headline, body, palette, photo, legal,
             )
         else:
             self._draw_product(
-                canvas, brief, ad_format, size,
-                headline, body, photo,
-                RED, DARK_RED, GOLD, CREAM, WHITE,
+                canvas, brief, label, size,
+                headline, body, palette, photo, legal,
             )
 
         buf = BytesIO()
@@ -128,186 +167,269 @@ class MockupAgent:
             buf.getvalue()
         ).decode("ascii")
 
-    def _draw_lifestyle(
-        self, canvas, brief, ad_format, size,
-        headline, body, photo,
-        RED, DARK_RED, GOLD, CREAM, WHITE,
-    ):
-        width, height = size
-        pad = 72
+    # ------------------------------------------------------------------ #
+    # Layout A — Feed (1080×1080): full-bleed photo + text bottom third  #
+    # ------------------------------------------------------------------ #
 
-        # Full-bleed background photo with dark gradient
+    def _draw_feed(
+        self, canvas, brief, label, size,
+        headline, body, palette, photo, legal,
+    ):
+        w, h = size
+        pad = 64
+
         if photo:
-            bg = _fit_cover(photo.convert("RGB"), width, height)
+            bg = _fit_cover(photo.convert("RGB"), w, h)
             canvas.paste(bg, (0, 0))
-            overlay = _gradient_overlay(
-                width, height, alpha_top=40, alpha_bottom=230
-            )
-            canvas.paste(overlay, (0, 0), overlay)
+            ov = _dark_overlay(w, h, a_top=0, a_bottom=220)
+            canvas.paste(ov, (0, 0), ov)
         else:
-            d = ImageDraw.Draw(canvas)
-            d.rectangle([0, 0, width, height], fill=RED)
-            d.rectangle(
-                [0, int(height * 0.65), width, height],
-                fill=(30, 107, 69),
-            )
+            d0 = ImageDraw.Draw(canvas)
+            d0.rectangle([0, 0, w, h], fill=palette["panel"])
 
         draw = ImageDraw.Draw(canvas)
 
-        # Brand + format label
-        draw.text(
-            (pad, 52),
-            brief.brand.upper(),
-            fill=GOLD,
-            font=self._font(52, bold=True),
+        # Brand badge
+        b_font = self._font(44, bold=True)
+        badge_txt = brief.brand.upper()
+        bw = self._tw(badge_txt, b_font) + 48
+        draw.rounded_rectangle(
+            [pad, 52, pad + bw, 52 + 64], radius=12, fill=palette["accent"]
         )
         draw.text(
-            (pad, 116),
-            ad_format.upper(),
-            fill=CREAM,
-            font=self._font(26),
+            (pad + 24, 64), badge_txt,
+            fill=palette["cta_text"], font=b_font,
+        )
+        draw.text(
+            (pad, 132),
+            f"{brief.channel.upper()} · {label.upper()}",
+            fill=(180, 180, 180), font=self._font(24),
         )
 
-        # Compute bottom text block
-        hl_size = 76 if height <= 1100 else 88
-        body_size = 34 if height <= 1100 else 40
-        body_wrap = 44 if height <= 1100 else 34
+        # Text block pinned to bottom
+        hl_sz = 76
+        bd_sz = 32
+        cta_h = 84
         hl_lines = wrap(headline, width=20)
-        body_lines = wrap(body, width=body_wrap)[:3]
-
-        hl_block = len(hl_lines) * int(hl_size * 1.15)
-        body_block = len(body_lines) * int(body_size * 1.35)
-        cta_h = 90
-        legal_h = 44
-        total = hl_block + 24 + body_block + 32 + cta_h + 20 + legal_h
-        y = height - total - pad
+        bd_lines = wrap(body, width=44)[:2]
+        total = (
+            len(hl_lines) * int(hl_sz * 1.15) + 20
+            + len(bd_lines) * int(bd_sz * 1.35) + 28
+            + cta_h + 16 + 32
+        )
+        y = max(h // 2, h - total - pad)
 
         for line in hl_lines:
             draw.text(
-                (pad, y), line, fill=WHITE, font=self._font(hl_size, bold=True)
+                (pad, y), line, fill=palette["text"],
+                font=self._font(hl_sz, bold=True),
             )
-            y += int(hl_size * 1.15)
+            y += int(hl_sz * 1.15)
 
-        y += 24
-        for line in body_lines:
+        y += 20
+        for line in bd_lines:
             draw.text(
-                (pad, y), line, fill=CREAM, font=self._font(body_size)
+                (pad, y), line, fill=(220, 220, 220),
+                font=self._font(bd_sz),
             )
-            y += int(body_size * 1.35)
+            y += int(bd_sz * 1.35)
 
-        y += 32
-        cta_font = self._font(32, bold=True)
-        btn_w = max(
-            280,
-            self._text_width(brief.cta.upper(), cta_font) + 80,
-        )
+        y += 28
+        cf = self._font(32, bold=True)
+        bw2 = max(260, self._tw(brief.cta.upper(), cf) + 80)
         draw.rounded_rectangle(
-            [pad, y, pad + btn_w, y + cta_h], radius=20, fill=GOLD
+            [pad, y, pad + bw2, y + cta_h], radius=20, fill=palette["accent"]
         )
         draw.text(
-            (pad + 36, y + 22),
-            brief.cta.upper(),
-            fill=DARK_RED,
-            font=cta_font,
+            (pad + 36, y + (cta_h - 32) // 2),
+            brief.cta.upper(), fill=palette["cta_text"], font=cf,
         )
-
         draw.text(
-            (pad, y + cta_h + 16),
-            "Enjoy responsibly. Legal drinking age only.",
-            fill=CREAM,
-            font=self._font(24),
+            (pad, y + cta_h + 12), legal,
+            fill=(150, 150, 150), font=self._font(20),
         )
 
-    def _draw_product(
-        self, canvas, brief, ad_format, size,
-        headline, body, photo,
-        RED, DARK_RED, GOLD, CREAM, WHITE,
+    # ------------------------------------------------------------------ #
+    # Layout B — Story (1080×1920): photo top, headline spans split,     #
+    #            dark panel + body + CTA bottom                           #
+    # ------------------------------------------------------------------ #
+
+    def _draw_story(
+        self, canvas, brief, label, size,
+        headline, body, palette, photo, legal,
     ):
-        width, height = size
+        w, h = size
         pad = 72
-        split = int(height * 0.52)
+        split = int(h * 0.52)
 
+        # Photo (top portion)
         if photo:
-            ph = _fit_cover(photo.convert("RGB"), width, split)
+            ph = _fit_cover(photo.convert("RGB"), w, split)
             canvas.paste(ph, (0, 0))
-            fade = _gradient_overlay(
-                width, split, alpha_top=0, alpha_bottom=130
-            )
-            canvas.paste(fade, (0, 0), fade)
+            # Light dark at top for brand readability
+            top_ov = _dark_overlay(w, split, a_top=160, a_bottom=20)
+            canvas.paste(top_ov, (0, 0), top_ov)
         else:
-            d = ImageDraw.Draw(canvas)
-            d.rectangle([0, 0, width, split], fill=DARK_RED)
+            d0 = ImageDraw.Draw(canvas)
+            d0.rectangle([0, 0, w, split], fill=palette["panel"])
 
         draw = ImageDraw.Draw(canvas)
 
+        # Brand name top-left
         draw.text(
-            (pad, 48),
-            brief.brand.upper(),
-            fill=GOLD,
-            font=self._font(54, bold=True),
+            (pad, 64), brief.brand.upper(),
+            fill=palette["accent"], font=self._font(52, bold=True),
         )
         draw.text(
-            (pad, 114),
-            ad_format.upper(),
-            fill=CREAM,
-            font=self._font(26),
+            (pad, 132),
+            f"{brief.channel.upper()} · STORY",
+            fill=(190, 190, 190), font=self._font(26),
         )
 
-        # Text zone
-        draw.rectangle([0, split, width, height], fill=DARK_RED)
-        draw.rectangle([pad, split, width - pad, split + 4], fill=GOLD)
+        # Dark panel (bottom half)
+        draw.rectangle([0, split, w, h], fill=palette["panel"])
+        draw.rectangle(
+            [pad, split, w - pad, split + 4], fill=palette["accent"]
+        )
 
-        y = split + 32
-        hl_size = 70
+        # Headline — starts 80px above split so it bridges photo/panel
+        hl_sz = 88
+        hl_lines = wrap(headline, width=17)
+        hl_total = len(hl_lines) * int(hl_sz * 1.12)
+        y = max(split // 3, split - 80 - hl_total)
+
+        for line in hl_lines:
+            # Drop shadow for legibility over photo
+            draw.text(
+                (pad + 3, y + 3), line,
+                fill=(0, 0, 0), font=self._font(hl_sz, bold=True),
+            )
+            draw.text(
+                (pad, y), line,
+                fill=palette["text"], font=self._font(hl_sz, bold=True),
+            )
+            y += int(hl_sz * 1.12)
+
+        # Body in dark panel
+        y = split + 40
+        bd_sz = 36
+        for line in wrap(body, width=34)[:3]:
+            draw.text(
+                (pad, y), line,
+                fill=palette["subtext"], font=self._font(bd_sz),
+            )
+            y += int(bd_sz * 1.35)
+
+        y += 28
+        cf = self._font(34, bold=True)
+        bw = max(280, self._tw(brief.cta.upper(), cf) + 80)
+        cta_h = 90
+        draw.rounded_rectangle(
+            [pad, y, pad + bw, y + cta_h], radius=22, fill=palette["accent"]
+        )
+        draw.text(
+            (pad + 36, y + (cta_h - 34) // 2),
+            brief.cta.upper(), fill=palette["cta_text"], font=cf,
+        )
+        draw.text(
+            (pad, h - 50), legal,
+            fill=(130, 130, 130), font=self._font(22),
+        )
+
+    # ------------------------------------------------------------------ #
+    # Layout C — Product (1080×1080): accent sidebar, photo + text panel #
+    # ------------------------------------------------------------------ #
+
+    def _draw_product(
+        self, canvas, brief, label, size,
+        headline, body, palette, photo, legal,
+    ):
+        w, h = size
+        pad = 56
+        sidebar_w = int(w * 0.12)
+        cx = sidebar_w + pad          # content left edge
+        pzone_w = w - sidebar_w
+        pzone_h = int(h * 0.52)
+
+        draw = ImageDraw.Draw(canvas)
+
+        # Accent sidebar
+        draw.rectangle([0, 0, sidebar_w, h], fill=palette["accent"])
+
+        # Photo zone (right of sidebar, top 52%)
+        if photo:
+            ph = _fit_cover(photo.convert("RGB"), pzone_w, pzone_h)
+            canvas.paste(ph, (sidebar_w, 0))
+            fade = _dark_overlay(pzone_w, pzone_h, a_top=0, a_bottom=150)
+            canvas.paste(fade, (sidebar_w, 0), fade)
+        else:
+            draw.rectangle(
+                [sidebar_w, 0, w, pzone_h], fill=palette["panel"]
+            )
+
+        draw = ImageDraw.Draw(canvas)
+
+        # Brand + label on photo
+        draw.text(
+            (cx, 52), brief.brand.upper(),
+            fill=palette["accent"], font=self._font(54, bold=True),
+        )
+        draw.text(
+            (cx, 122),
+            f"{brief.channel.upper()} · {label.upper()}",
+            fill=(190, 190, 190), font=self._font(26),
+        )
+
+        # Text panel
+        draw.rectangle([sidebar_w, pzone_h, w, h], fill=palette["bg"])
+        draw.rectangle(
+            [cx, pzone_h, w - pad, pzone_h + 4], fill=palette["accent"]
+        )
+
+        y = pzone_h + 36
+        hl_sz = 68
         for line in wrap(headline, width=22):
             draw.text(
-                (pad, y), line, fill=WHITE,
-                font=self._font(hl_size, bold=True),
+                (cx, y), line, fill=palette["text"],
+                font=self._font(hl_sz, bold=True),
             )
-            y += int(hl_size * 1.1)
+            y += int(hl_sz * 1.1)
 
-        y += 18
-        body_size = 32
-        for line in wrap(body, width=44)[:3]:
+        y += 16
+        bd_sz = 30
+        for line in wrap(body, width=46)[:3]:
             draw.text(
-                (pad, y), line, fill=CREAM, font=self._font(body_size)
+                (cx, y), line,
+                fill=palette["subtext"], font=self._font(bd_sz),
             )
-            y += int(body_size * 1.35)
+            y += int(bd_sz * 1.35)
 
-        y += 24
-        cta_font = self._font(30, bold=True)
-        btn_w = max(
-            260,
-            self._text_width(brief.cta.upper(), cta_font) + 80,
-        )
-        cta_h = 76
+        y += 20
+        cf = self._font(30, bold=True)
+        bw = max(240, self._tw(brief.cta.upper(), cf) + 80)
+        cta_h = 74
         draw.rounded_rectangle(
-            [pad, y, pad + btn_w, y + cta_h], radius=18, fill=GOLD
+            [cx, y, cx + bw, y + cta_h], radius=18, fill=palette["accent"]
         )
         draw.text(
-            (pad + 32, y + 20),
-            brief.cta.upper(),
-            fill=DARK_RED,
-            font=cta_font,
+            (cx + 32, y + (cta_h - 30) // 2),
+            brief.cta.upper(), fill=palette["cta_text"], font=cf,
         )
-
         draw.text(
-            (pad, height - 40),
-            "Enjoy responsibly. Legal drinking age only.",
-            fill=CREAM,
-            font=self._font(22),
+            (cx, h - 40), legal,
+            fill=(130, 130, 130), font=self._font(20),
         )
 
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ #
 
-    def _text_width(self, text, font):
+    def _tw(self, text: str, font) -> int:
         try:
             bbox = font.getbbox(text)
             return bbox[2] - bbox[0]
         except Exception:
             return len(text) * 18
 
-    def _font(self, size, bold=False):
+    def _font(self, size: int, bold: bool = False):
         candidates = [
             "C:/Windows/Fonts/arialbd.ttf"
             if bold else "C:/Windows/Fonts/arial.ttf",

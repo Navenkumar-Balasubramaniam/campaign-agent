@@ -20,22 +20,44 @@ ESTRELLA_PROFILE = {
         "claims that imply health benefits",
     ],
     "source_notes": [
-        "Damm corporate campaign pages reference Mediterranean lifestyle and environmental protection.",
-        "Estrella Damm is commonly positioned as a Barcelona/Mediterranean beer brand.",
+        "Damm corporate campaign pages reference Mediterranean lifestyle.",
+        "Estrella Damm is positioned as a Barcelona/Mediterranean beer brand.",
     ],
 }
 
 
-def get_brand_profile(brand):
+def get_brand_profile(brand, brief=None):
     if brand.strip().lower() == "estrella":
         return ESTRELLA_PROFILE
 
+    tone = brief.tone if brief else "authentic and engaging"
+    product = brief.product if brief else f"{brand} product"
+    audience = brief.audience if brief else "target consumers"
+    goal = brief.goal if brief else "brand growth"
+    channel = brief.channel if brief else "social media"
+
     return {
         "brand": brand,
-        "brand_context": "Custom campaign brand.",
-        "tone": "Use the tone supplied in the brief.",
-        "mission": "Create a clear, responsible campaign aligned with the brief.",
-        "must_include": ["clear product presence", "clear CTA", "responsible messaging"],
-        "avoid": ["misleading claims", "unsafe behavior"],
-        "source_notes": [],
+        "brand_context": (
+            f"{brand} — offering {product} to {audience} via {channel}."
+        ),
+        "tone": tone,
+        "mission": (
+            f"Drive {goal.lower()} by connecting {brand} with {audience} "
+            "through honest, compelling campaigns."
+        ),
+        "must_include": [
+            "clear product presence",
+            "clear CTA",
+            "brand name visibility",
+            "audience-relevant messaging",
+        ],
+        "avoid": [
+            "misleading claims",
+            "unsafe or irresponsible behaviour",
+            "generic filler copy that ignores the brief",
+        ],
+        "source_notes": [
+            f"Profile derived from the campaign brief for {brand}."
+        ],
     }

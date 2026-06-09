@@ -1,46 +1,121 @@
+_ALCOHOL_KEYWORDS = {
+    "beer", "wine", "spirits", "alcohol", "lager", "ale",
+    "whiskey", "whisky", "vodka", "gin", "rum", "cocktail",
+    "liquor", "brew", "cider", "champagne", "prosecco",
+}
+
+_LIFESTYLE_SOURCES = [
+    {
+        "source": "Unsplash",
+        "source_url": "https://unsplash.com",
+        "license": "Free to use under the Unsplash License",
+        "note": (
+            "Search for images matching your campaign tone and audience. "
+            "Avoid implying people in photos endorse the brand."
+        ),
+    },
+    {
+        "source": "Pexels",
+        "source_url": "https://www.pexels.com",
+        "license": "Free to use under the Pexels License",
+        "note": (
+            "Review licensing before real publishing. "
+            "Check for model releases if faces are visible."
+        ),
+    },
+]
+
+
+def _is_alcohol(product):
+    return any(kw in product.lower() for kw in _ALCOHOL_KEYWORDS)
+
+
 class AssetAgent:
     def generate(self, brief):
-        base_assets = [
+        brand = brief.brand
+        product = brief.product
+        channel = brief.channel
+        audience = brief.audience
+
+        # Audience context for search suggestions
+        audience_short = (
+            audience.split(",")[0].strip() if audience else "target audience"
+        )
+
+        assets = [
             {
-                "title": "Estrella bottle product reference",
+                "title": f"{brand} official product imagery",
                 "asset_type": "Product reference",
-                "source": "Wikimedia Commons",
-                "source_url": "https://commons.wikimedia.org/wiki/File:Estrella2014.jpg",
-                "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Estrella2014.jpg",
-                "license": "CC0 1.0 public domain dedication",
-                "use_case": "Product-reference image for academic mockups and layout planning.",
-                "note": "Use as a reference asset, not as official brand-approved artwork.",
+                "source": f"{brand} press kit / brand team",
+                "source_url": "",
+                "image_url": "",
+                "license": "Obtain directly from the brand",
+                "use_case": (
+                    f"Official {brand} {product} photography for campaign "
+                    "layouts and creative production."
+                ),
+                "note": (
+                    "Request press-kit imagery from the brand's marketing "
+                    "team. Do not use unofficial product images in live ads."
+                ),
             },
             {
-                "title": "Friends at a beer bar",
+                "title": f"Lifestyle reference — {audience_short}",
                 "asset_type": "Lifestyle reference",
-                "source": "Unsplash",
-                "source_url": "https://unsplash.com/photos/group-of-friends-at-the-cellar-bar-8LlEY7DEvWo",
+                "source": _LIFESTYLE_SOURCES[0]["source"],
+                "source_url": _LIFESTYLE_SOURCES[0]["source_url"],
                 "image_url": "",
-                "license": "Free to use under the Unsplash License",
-                "use_case": "Mood reference for social, bar, and friendship campaign concepts.",
-                "note": "Check the page before final use and avoid implying people endorse the brand.",
+                "license": _LIFESTYLE_SOURCES[0]["license"],
+                "use_case": (
+                    f"Mood and lifestyle imagery matching the {brand} "
+                    f"campaign tone for {audience_short}."
+                ),
+                "note": _LIFESTYLE_SOURCES[0]["note"],
             },
             {
-                "title": "Friends with beers at a bar",
+                "title": f"Social context reference — {channel}",
                 "asset_type": "Lifestyle reference",
-                "source": "Pexels",
-                "source_url": "https://www.pexels.com/photo/friends-with-beers-at-a-bar-3851576/",
+                "source": _LIFESTYLE_SOURCES[1]["source"],
+                "source_url": _LIFESTYLE_SOURCES[1]["source_url"],
                 "image_url": "",
-                "license": "Free to use under the Pexels License",
-                "use_case": "Mood reference for warm pub and group-social creative routes.",
-                "note": "Use as mock campaign inspiration and review licensing before real publishing.",
+                "license": _LIFESTYLE_SOURCES[1]["license"],
+                "use_case": (
+                    f"Social and contextual imagery for {brand} {channel} "
+                    "creative routes."
+                ),
+                "note": _LIFESTYLE_SOURCES[1]["note"],
             },
         ]
 
+        if _is_alcohol(product):
+            assets.append({
+                "title": "Responsible drinking imagery guidance",
+                "asset_type": "Compliance reference",
+                "source": "Drinkaware / platform ad policies",
+                "source_url": "https://www.drinkaware.co.uk",
+                "image_url": "",
+                "license": "N/A — compliance reference only",
+                "use_case": (
+                    "Ensure all alcohol campaign imagery meets responsible "
+                    "drinking guidelines and platform policies."
+                ),
+                "note": (
+                    "Include a responsible drinking message in all alcohol "
+                    "ads. Check Meta, Google, and local market policies "
+                    "before launch."
+                ),
+            })
+
         return {
             "asset_strategy": (
-                f"Use a mix of product-reference and lifestyle-reference assets to build "
-                f"{brief.brand} mock campaign concepts for {brief.channel}."
+                f"Use a combination of official {brand} product photography "
+                f"and audience-relevant lifestyle imagery to build compelling "
+                f"{channel} campaign concepts."
             ),
             "usage_note": (
-                "These are academic mockup sources. For a real launch, use owned brand "
-                "assets, approved product photography, and legally cleared model releases."
+                "These are reference sources for draft layouts. For a real "
+                "launch, use owned brand assets, approved product photography,"
+                " and legally cleared model releases."
             ),
-            "assets": base_assets,
+            "assets": assets,
         }

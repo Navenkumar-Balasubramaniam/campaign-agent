@@ -1,118 +1,116 @@
 import streamlit as st
 
 from config.settings import settings
-from src.clients.demo_client import DemoClient
 from src.clients.openrouter_client import OpenRouterClient
 from src.models.schemas import CampaignBrief
 from src.orchestrator import CampaignOrchestrator
 
 
 CAMPAIGN_PRESETS = {
-    "Estrella beer mock campaign": {
+    "Estrella — Summer outdoor moment": {
         "brand": "Estrella",
         "campaign_trigger": (
-            "The sun is out so we want people to go to beer gardens or the park "
-            "and enjoy a nice cold beer."
+            "The sun is out and people are heading to beer gardens, "
+            "parks, and terraces to enjoy the warm weather."
         ),
-        "product": "Mediterranean-style beer",
-        "audience": "adults aged 18-24 who enjoy social nights out",
+        "product": "Mediterranean-style lager",
+        "audience": "Adults aged 18–34 who enjoy social outdoor occasions",
         "goal_index": 0,
         "budget": 1000,
         "channel_index": 0,
-        "tone": "Fun, party, good vibes",
+        "tone": "Warm, social, Mediterranean, effortlessly cool",
         "duration_days": 14,
         "cta": "Shop Now",
     },
     "Custom campaign": {
-        "brand": "Custom Brand",
-        "campaign_trigger": "A social moment that should trigger a campaign.",
-        "product": "Organic Herbal Tea",
-        "audience": "Women aged 25-45 interested in wellness and natural products",
+        "brand": "Your Brand",
+        "campaign_trigger": (
+            "Describe the moment or event that should trigger this campaign."
+        ),
+        "product": "Your Product",
+        "audience": "Your target audience",
         "goal_index": 0,
         "budget": 1000,
         "channel_index": 0,
-        "tone": "Premium, calming, wellness-focused",
+        "tone": "Describe the tone",
         "duration_days": 14,
-        "cta": "Shop Now",
+        "cta": "Learn More",
     },
 }
 
+GOALS = ["Sales", "Awareness", "Lead Generation"]
+CHANNELS = ["Instagram", "Facebook", "Meta", "LinkedIn"]
 
 st.set_page_config(page_title=settings.APP_NAME, layout="wide")
 
-st.title("AI Campaign Agent Demo")
-st.caption("Creative brief in. Campaign pack out.")
+st.title("AI Campaign Agent")
+st.caption("Fill in the brief. Get a full campaign pack.")
 
+# ── API key guard ─────────────────────────────────────────────────────
+if not settings.OPENROUTER_API_KEY:
+    st.error(
+        "No OpenRouter API key found. Add `OPENROUTER_API_KEY` to your "
+        "`.env` file and restart the app."
+    )
+    st.stop()
+
+# ── Preset selector ───────────────────────────────────────────────────
 preset_name = st.selectbox(
-    "Campaign Preset",
-    list(CAMPAIGN_PRESETS.keys()),
+    "Start from a preset", list(CAMPAIGN_PRESETS.keys())
 )
 preset = CAMPAIGN_PRESETS[preset_name]
 
-
+# ── Brief form ────────────────────────────────────────────────────────
 with st.form("campaign_brief"):
     st.subheader("Creative Brief")
 
-    brand = st.text_input("Company / Brand", preset["brand"])
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        brand = st.text_input("Brand name", preset["brand"])
+        product = st.text_input("Product", preset["product"])
+        audience = st.text_area("Target audience", preset["audience"])
+        goal = st.selectbox(
+            "Campaign goal", GOALS, index=preset["goal_index"]
+        )
+        budget = st.number_input(
+            "Budget (€)", min_value=1, value=preset["budget"]
+        )
+
+    with col_b:
+        channel = st.selectbox(
+            "Channel", CHANNELS, index=preset["channel_index"]
+        )
+        tone = st.text_input("Tone", preset["tone"])
+        duration_days = st.number_input(
+            "Duration (days)", min_value=1, value=preset["duration_days"]
+        )
+        cta = st.text_input("CTA", preset["cta"])
 
     campaign_trigger = st.text_area(
-        "Campaign Trigger",
+        "Campaign trigger",
         preset["campaign_trigger"],
-        help="Describe the external moment or event the campaign should react to.",
+        help=(
+            "Describe the real-world moment or event the campaign "
+            "should react to."
+        ),
     )
 
-    product = st.text_input("Product", preset["product"])
+    st.divider()
 
-    audience = st.text_area(
-        "Target Audience",
-        preset["audience"],
-    )
-
-    goal = st.selectbox(
-        "Campaign Goal",
-        ["Sales", "Awareness", "Lead Generation"],
-        index=preset["goal_index"],
-    )
-
-    budget = st.number_input(
-        "Budget",
-        min_value=1,
-        value=preset["budget"],
-    )
-
-    channel = st.selectbox(
-        "Channel",
-        ["Instagram", "Facebook", "Meta", "LinkedIn"],
-        index=preset["channel_index"],
-    )
-
-    tone = st.text_input(
-        "Tone",
-        preset["tone"],
-    )
-
-    duration_days = st.number_input(
-        "Duration in Days",
-        min_value=1,
-        value=preset["duration_days"],
-    )
-
-    cta = st.text_input("CTA", preset["cta"])
-
-    generation_mode = st.selectbox(
-        "Generation Mode",
-        ["Free demo mode", "OpenRouter API"],
-    )
-
-    generate_image = st.checkbox(
-        "Generate 3 paid images using OpenRouter",
+    generate_images = st.checkbox(
+        "Generate AI images via OpenRouter (uses image API credits)",
         value=False,
-        disabled=generation_mode == "Free demo mode",
+        help=(
+            "When enabled, the agent calls the OpenRouter image API to "
+            "generate campaign visuals. This incurs additional API cost."
+        ),
     )
 
     submitted = st.form_submit_button("Generate Campaign Pack")
 
 
+# ── Run ───────────────────────────────────────────────────────────────
 if submitted:
     try:
         brief = CampaignBrief(
@@ -128,26 +126,23 @@ if submitted:
             cta=cta,
         )
 
-        client = DemoClient() if generation_mode == "Free demo mode" else OpenRouterClient()
+        client = OpenRouterClient()
         orchestrator = CampaignOrchestrator(client)
 
-        with st.spinner("Generating campaign pack..."):
-            result = orchestrator.run(
-                brief,
-                generate_image=generate_image,
-            )
+        with st.spinner("Generating campaign pack…"):
+            result = orchestrator.run(brief, generate_image=generate_images)
 
         pack = result["campaign_pack"]
 
-        st.success("Campaign pack generated successfully.")
-
+        st.success("Campaign pack generated.")
         st.divider()
 
+        # ── Executive recommendation ──────────────────────────────────
         st.header("Campaign Pack")
-
         st.subheader("Executive Recommendation")
         st.write(pack["recommendation_note"])
 
+        # ── Strategy ─────────────────────────────────────────────────
         st.subheader("Campaign Strategy")
         strategy = pack["campaign_strategy"]
         brand_profile = strategy["brand_profile"]
@@ -157,10 +152,10 @@ if submitted:
         st.markdown(f"**Target Insight:** {strategy['target_insight']}")
         st.markdown(f"**Positioning:** {strategy['positioning']}")
 
-        st.markdown("**Brand Alignment**")
-        st.markdown(f"**Brand Context:** {brand_profile['brand_context']}")
-        st.markdown(f"**Tone:** {brand_profile['tone']}")
-        st.markdown(f"**Mission:** {brand_profile['mission']}")
+        st.markdown("**Brand Profile**")
+        st.markdown(f"- **Context:** {brand_profile['brand_context']}")
+        st.markdown(f"- **Tone:** {brand_profile['tone']}")
+        st.markdown(f"- **Mission:** {brand_profile['mission']}")
 
         st.markdown("**Message Pillars**")
         for pillar in strategy["message_pillars"]:
@@ -169,48 +164,47 @@ if submitted:
         st.markdown("**Content Plan**")
         for item in strategy["content_plan"]:
             with st.container(border=True):
-                st.markdown(f"**{item['phase']} - {item['format']}**")
+                st.markdown(f"**{item['phase']} — {item['format']}**")
                 st.write(item["concept"])
                 st.caption(item["purpose"])
 
+        # ── Agent reasoning ───────────────────────────────────────────
         st.subheader("Agent Reasoning")
         for item in pack["decision_rationale"]:
             with st.container(border=True):
                 st.markdown(f"**{item['step']}**")
-                st.markdown(f"**Input Signal:** {item['input_signal']}")
+                st.markdown(f"**Input:** {item['input_signal']}")
                 st.markdown(f"**Decision:** {item['decision']}")
 
+        # ── Brief summary ─────────────────────────────────────────────
         st.subheader("Campaign Brief")
-        brief_summary = pack["brief_summary"]
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown(f"**Brand:** {brief_summary['brand']}")
-            st.markdown(f"**Trigger:** {brief_summary['campaign_trigger']}")
-            st.markdown(f"**Product:** {brief_summary['product']}")
-            st.markdown(f"**Audience:** {brief_summary['audience']}")
-            st.markdown(f"**Goal:** {brief_summary['goal']}")
-            st.markdown(f"**Channel:** {brief_summary['channel']}")
-
-        with col2:
-            st.markdown(f"**Tone:** {brief_summary['tone']}")
-            st.markdown(f"**Budget:** {brief_summary['budget']}")
-            st.markdown(f"**Duration:** {brief_summary['duration_days']} days")
-            st.markdown(f"**CTA:** {brief_summary['cta']}")
+        bs = pack["brief_summary"]
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown(f"**Brand:** {bs['brand']}")
+            st.markdown(f"**Trigger:** {bs['campaign_trigger']}")
+            st.markdown(f"**Product:** {bs['product']}")
+            st.markdown(f"**Audience:** {bs['audience']}")
+            st.markdown(f"**Goal:** {bs['goal']}")
+            st.markdown(f"**Channel:** {bs['channel']}")
+        with c2:
+            st.markdown(f"**Tone:** {bs['tone']}")
+            st.markdown(f"**Budget:** €{bs['budget']}")
+            st.markdown(f"**Duration:** {bs['duration_days']} days")
+            st.markdown(f"**CTA:** {bs['cta']}")
 
         st.divider()
 
+        # ── Ad copy ───────────────────────────────────────────────────
         st.subheader("Recommended Ad Copy")
-
         headlines = pack["copy_variants"]["headlines"]
         primary_texts = pack["copy_variants"]["primary_texts"]
-        ctas = pack["copy_variants"]["ctas"]
+        ctas = pack["copy_variants"].get("ctas", [cta])
 
         for i, headline in enumerate(headlines, start=1):
-            primary_text = primary_texts[i - 1] if i - 1 < len(primary_texts) else ""
-            selected_cta = ctas[0] if ctas else brief_summary["cta"]
-
+            n = i - 1
+            primary_text = primary_texts[n] if n < len(primary_texts) else ""
+            selected_cta = ctas[0] if ctas else bs["cta"]
             with st.container(border=True):
                 st.markdown(f"### Variant {i}")
                 st.markdown(f"**Headline:** {headline}")
@@ -220,91 +214,98 @@ if submitted:
 
         st.divider()
 
-        st.subheader("Generated Campaign Posters")
-
+        # ── AI-generated images ───────────────────────────────────────
         image_urls = pack.get("generated_image_urls", [])
-
         if image_urls:
+            st.subheader("AI-Generated Campaign Visuals")
             cols = st.columns(3)
-
             for i, image_url in enumerate(image_urls):
                 with cols[i % 3]:
                     st.image(
                         image_url,
-                        caption=f"Poster Concept {i + 1}",
+                        caption=f"Visual Concept {i + 1}",
                         use_container_width=True,
                     )
-        elif generation_mode == "Free demo mode":
-            st.info("Free demo mode uses visual prompts instead of paid image generation.")
-        else:
-            st.info("Image generation was not selected.")
+            st.divider()
 
-        st.subheader("Generated Mock Creative Assets")
+        # ── Mock creative mockups ─────────────────────────────────────
+        st.subheader("Draft Creative Mockups")
         mockup_assets = pack["mockup_assets"]
         st.caption(mockup_assets["generation_note"])
-
         mockup_cols = st.columns(3)
         for i, asset in enumerate(mockup_assets["assets"]):
             with mockup_cols[i % 3]:
                 with st.container(border=True):
-                    st.image(asset["image_data_url"], caption=asset["format"], use_container_width=True)
-                    st.markdown(f"**Variant {asset['variant']}: {asset['headline']}**")
+                    st.image(
+                        asset["image_data_url"],
+                        caption=asset["format"],
+                        use_container_width=True,
+                    )
+                    st.markdown(
+                        f"**Variant {asset['variant']}: {asset['headline']}**"
+                    )
                     st.write(asset["body"])
                     st.caption(asset["design_notes"])
 
         st.divider()
 
+        # ── Visual prompts ────────────────────────────────────────────
         st.subheader("Visual Strategy Notes")
-
-        image_prompts = pack["visual_concepts"]["image_prompts"]
-
-        for i, prompt in enumerate(image_prompts, start=1):
+        for i, prompt in enumerate(
+            pack["visual_concepts"]["image_prompts"], start=1
+        ):
             with st.expander(f"Visual Concept {i} Prompt"):
                 st.write(prompt)
 
-        st.subheader("Mock Asset Sources")
+        # ── Mock asset sources ────────────────────────────────────────
+        st.subheader("Reference Asset Sources")
         mock_assets = pack["mock_assets"]
         st.write(mock_assets["asset_strategy"])
         st.caption(mock_assets["usage_note"])
-
-        asset_cols = st.columns(3)
+        asset_cols = st.columns(len(mock_assets["assets"]))
         for i, asset in enumerate(mock_assets["assets"]):
-            with asset_cols[i % 3]:
+            with asset_cols[i]:
                 with st.container(border=True):
-                    if asset["image_url"]:
-                        st.image(asset["image_url"], use_container_width=True)
                     st.markdown(f"**{asset['title']}**")
                     st.caption(asset["asset_type"])
-                    st.markdown(f"Source: [{asset['source']}]({asset['source_url']})")
+                    if asset["source_url"]:
+                        src = asset["source"]
+                        url = asset["source_url"]
+                        st.markdown(f"Source: [{src}]({url})")
+                    else:
+                        st.markdown(f"Source: {asset['source']}")
                     st.markdown(f"License: {asset['license']}")
                     st.write(asset["use_case"])
                     st.caption(asset["note"])
 
         st.divider()
 
+        # ── Budget ────────────────────────────────────────────────────
         st.subheader("Budget Recommendation")
         st.write(pack["budget_note"])
-
         budget_plan = pack["budget_plan"]
-
-        st.markdown(f"**Total Budget:** {budget_plan['total_budget']}")
-        st.markdown(f"**Recommended Daily Budget:** {budget_plan['daily_budget']}")
-
+        st.markdown(f"**Total Budget:** €{budget_plan['total_budget']}")
+        st.markdown(
+            f"**Recommended Daily Budget:** €{budget_plan['daily_budget']}"
+        )
         for item in budget_plan["budget_split"]:
             st.markdown(
                 f"- **{item['bucket']}**: {item['percentage']}% "
-                f"({item['amount']})"
+                f"(€{item['amount']})"
             )
 
         st.divider()
 
+        # ── A/B testing ───────────────────────────────────────────────
         st.subheader("A/B Testing Recommendation")
         st.write(pack["ab_test_note"])
-
         kpi_plan = pack["kpi_plan"]
         st.markdown(f"**Primary Metric:** {kpi_plan['primary_metric']}")
-        st.markdown(f"**Secondary Metrics:** {', '.join(kpi_plan['secondary_metrics'])}")
-        st.markdown(f"**Optimization Rule:** {kpi_plan['optimization_rule']}")
+        st.markdown(
+            f"**Secondary Metrics:** "
+            f"{', '.join(kpi_plan['secondary_metrics'])}"
+        )
+        st.markdown(f"**Optimisation Rule:** {kpi_plan['optimization_rule']}")
 
         for test in pack["ab_test_plan"]["tests"]:
             with st.container(border=True):
@@ -317,29 +318,24 @@ if submitted:
 
         st.divider()
 
+        # ── Reflection ────────────────────────────────────────────────
         st.subheader("Reflection and Responsible Use")
-
-        reflection_col1, reflection_col2 = st.columns(2)
-
-        with reflection_col1:
+        r1, r2 = st.columns(2)
+        with r1:
             st.markdown("**Assumptions**")
             for item in pack["assumptions"]:
                 st.markdown(f"- {item}")
-
             st.markdown("**Limitations**")
             for item in pack["limitations"]:
                 st.markdown(f"- {item}")
-
-        with reflection_col2:
+        with r2:
             st.markdown("**Ethical Considerations**")
             for item in pack["ethical_considerations"]:
                 st.markdown(f"- {item}")
-
             st.markdown("**Real-World Use**")
             st.write(pack["real_world_use"])
 
         st.divider()
-
         st.subheader("Launch Status")
         st.success(pack["launch_status"])
 
