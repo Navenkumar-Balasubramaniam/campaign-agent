@@ -7,3 +7,4 @@ venv/
 .env.local
 .DS_Store
 campaign_outputs/
+scripts/_gemini_test_image.png

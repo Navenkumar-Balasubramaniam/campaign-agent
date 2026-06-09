@@ -2,6 +2,7 @@ import streamlit as st
 
 from config.settings import settings
 from src.clients.demo_client import DemoClient
+from src.clients.gemini_client import GeminiClient
 from src.clients.openrouter_client import OpenRouterClient
 from src.models.schemas import CampaignBrief
 from src.orchestrator import CampaignOrchestrator
@@ -101,13 +102,22 @@ with st.form("campaign_brief"):
 
     generation_mode = st.selectbox(
         "Generation Mode",
-        ["Free demo mode", "OpenRouter API"],
+        ["Gemini (live AI)", "Free offline demo", "OpenRouter API"],
+        help=(
+            "Gemini uses a live AI model grounded on the brand's past campaigns. "
+            "Free offline demo runs deterministic logic with no API key."
+        ),
     )
 
     generate_image = st.checkbox(
-        "Generate 3 paid images using OpenRouter",
+        "Generate AI campaign images (paid — uses API credits)",
         value=False,
-        disabled=generation_mode == "Free demo mode",
+        disabled=generation_mode == "Free offline demo",
+        help=(
+            "Generates real AI images from the visual prompts. "
+            "Gemini uses gemini-2.5-flash-image; OpenRouter uses its image model. "
+            "Costs a few cents per image. Not available in offline mode."
+        ),
     )
 
     submitted = st.form_submit_button("Generate Campaign Pack")
@@ -128,7 +138,13 @@ if submitted:
             cta=cta,
         )
 
-        client = DemoClient() if generation_mode == "Free demo mode" else OpenRouterClient()
+        if generation_mode == "Gemini (live AI)":
+            client = GeminiClient()
+        elif generation_mode == "OpenRouter API":
+            client = OpenRouterClient()
+        else:
+            client = DemoClient()
+
         orchestrator = CampaignOrchestrator(client)
 
         with st.spinner("Generating campaign pack..."):
@@ -148,6 +164,79 @@ if submitted:
         st.subheader("Executive Recommendation")
         st.write(pack["recommendation_note"])
 
+        classification = pack.get("trigger_classification", {})
+        decision = pack.get("decision", {})
+
+        st.subheader("Trigger Classification")
+        st.caption(
+            f"Method: {classification.get('method', 'n/a')} · "
+            f"Decision method: {decision.get('method', 'n/a')}"
+        )
+        cls1, cls2 = st.columns(2)
+        with cls1:
+            st.markdown(f"**Season:** {classification.get('season', '-')}")
+            st.markdown(f"**Urgency:** {classification.get('urgency', '-')}")
+            st.markdown(f"**Suggested Angle:** {classification.get('suggested_angle', '-')}")
+        with cls2:
+            st.markdown(f"**Themes:** {', '.join(classification.get('themes', [])) or '-'}")
+            st.markdown(f"**Risk Flags:** {', '.join(classification.get('risk_flags', [])) or 'none'}")
+        if classification.get("rationale"):
+            st.caption(classification["rationale"])
+
+        st.subheader("Data-Backed Decision")
+        if decision.get("recommended_angle"):
+            st.markdown(f"**Recommended Angle:** {decision['recommended_angle']}")
+        st.markdown(f"**Primary Metric:** {decision.get('primary_metric', '-')}")
+        st.markdown(f"**Confidence:** {decision.get('confidence', '-')}")
+        if decision.get("historical_evidence"):
+            st.markdown(f"**Historical Evidence:** {decision['historical_evidence']}")
+        if decision.get("budget_tilt"):
+            st.markdown(f"**Budget Tilt:** {decision['budget_tilt']}")
+        expected = decision.get("expected_performance", {})
+        if expected:
+            st.markdown("**Expected Performance (from comparable past campaigns):**")
+            st.markdown(
+                f"- CTR: {expected.get('ctr_pct', '-')}%  ·  "
+                f"CPA: {expected.get('cpa', '-')}  ·  "
+                f"Conv. rate: {expected.get('conversion_rate_pct', '-')}%  ·  "
+                f"ROAS: {expected.get('roas', '-')}"
+            )
+
+        grounded = pack.get("grounded_campaigns", [])
+        if grounded:
+            st.subheader("Learning From Past Campaigns")
+            st.caption("Most relevant past campaigns the agent grounded this plan on.")
+            for c in grounded:
+                with st.container(border=True):
+                    st.markdown(
+                        f"**{c.get('name')} ({c.get('year')})** — angle: {c.get('angle')}"
+                    )
+                    r = c.get("results_summary", {})
+                    st.caption(
+                        f"CTR {r.get('ctr', '-')}% · CPA {r.get('cpa', '-')} · "
+                        f"Conv. {r.get('conversion_rate', '-')}% · ROAS {r.get('roas', '-')} "
+                        f"· match score {c.get('match_score', '-')}"
+                    )
+                    if r.get("note"):
+                        st.write(r["note"])
+
+        benchmarks_by_angle = pack.get("historical_benchmarks", {})
+        if benchmarks_by_angle:
+            st.subheader("Historical Performance by Creative Angle")
+            table = [
+                {
+                    "Angle": angle,
+                    "CTR %": m.get("ctr"),
+                    "CPC": m.get("cpc"),
+                    "CPA": m.get("cpa"),
+                    "Conv. %": m.get("conversion_rate"),
+                    "ROAS": m.get("roas"),
+                    "Variants": m.get("variants"),
+                }
+                for angle, m in benchmarks_by_angle.items()
+            ]
+            st.dataframe(table, use_container_width=True, hide_index=True)
+
         st.subheader("Campaign Strategy")
         strategy = pack["campaign_strategy"]
         brand_profile = strategy["brand_profile"]
@@ -156,6 +245,10 @@ if submitted:
         st.markdown(f"**Objective:** {strategy['objective']}")
         st.markdown(f"**Target Insight:** {strategy['target_insight']}")
         st.markdown(f"**Positioning:** {strategy['positioning']}")
+        if strategy.get("historical_insight"):
+            st.markdown(f"**Historical Insight:** {strategy['historical_insight']}")
+        if strategy.get("grounded_on"):
+            st.caption("Grounded on: " + ", ".join(p for p in strategy["grounded_on"] if p))
 
         st.markdown("**Brand Alignment**")
         st.markdown(f"**Brand Context:** {brand_profile['brand_context']}")
@@ -176,9 +269,10 @@ if submitted:
         st.subheader("Agent Reasoning")
         for item in pack["decision_rationale"]:
             with st.container(border=True):
-                st.markdown(f"**{item['step']}**")
-                st.markdown(f"**Input Signal:** {item['input_signal']}")
-                st.markdown(f"**Decision:** {item['decision']}")
+                st.markdown(f"**{item.get('step', 'Step')}**")
+                evidence = item.get("evidence") or item.get("input_signal", "")
+                st.markdown(f"**Evidence:** {evidence}")
+                st.markdown(f"**Decision:** {item.get('decision', '')}")
 
         st.subheader("Campaign Brief")
         brief_summary = pack["brief_summary"]
@@ -223,6 +317,7 @@ if submitted:
         st.subheader("Generated Campaign Posters")
 
         image_urls = pack.get("generated_image_urls", [])
+        image_errors = pack.get("generated_image_errors", [])
 
         if image_urls:
             cols = st.columns(3)
@@ -234,23 +329,35 @@ if submitted:
                         caption=f"Poster Concept {i + 1}",
                         use_container_width=True,
                     )
-        elif generation_mode == "Free demo mode":
-            st.info("Free demo mode uses visual prompts instead of paid image generation.")
-        else:
-            st.info("Image generation was not selected.")
+        elif not generate_image:
+            if generation_mode == "Free offline demo":
+                st.info("Offline mode uses visual prompts and mock creatives instead of paid image generation.")
+            else:
+                st.info("AI image generation was not selected. Tick the checkbox to generate images.")
 
-        st.subheader("Generated Mock Creative Assets")
-        mockup_assets = pack["mockup_assets"]
-        st.caption(mockup_assets["generation_note"])
+        if image_errors:
+            st.warning(
+                "Some images could not be generated (often a safety refusal for "
+                "alcohol creative). Text and mock creatives are unaffected."
+            )
+            for err in image_errors:
+                st.caption(err)
 
-        mockup_cols = st.columns(3)
-        for i, asset in enumerate(mockup_assets["assets"]):
-            with mockup_cols[i % 3]:
-                with st.container(border=True):
-                    st.image(asset["image_data_url"], caption=asset["format"], use_container_width=True)
-                    st.markdown(f"**Variant {asset['variant']}: {asset['headline']}**")
-                    st.write(asset["body"])
-                    st.caption(asset["design_notes"])
+        # Mock creatives are a no-cost fallback visual. Only show them when no
+        # real AI images were generated, so they don't clutter the AI output.
+        if not image_urls:
+            st.subheader("Mock Creative Assets (offline draft layouts)")
+            mockup_assets = pack["mockup_assets"]
+            st.caption(mockup_assets["generation_note"])
+
+            mockup_cols = st.columns(3)
+            for i, asset in enumerate(mockup_assets["assets"]):
+                with mockup_cols[i % 3]:
+                    with st.container(border=True):
+                        st.image(asset["image_data_url"], caption=asset["format"], use_container_width=True)
+                        st.markdown(f"**Variant {asset['variant']}: {asset['headline']}**")
+                        st.write(asset["body"])
+                        st.caption(asset["design_notes"])
 
         st.divider()
 

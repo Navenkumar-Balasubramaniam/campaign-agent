@@ -1,128 +1,139 @@
 # AI Campaign Agent
 
-AI Campaign Agent is a Streamlit prototype that turns a campaign trigger into a campaign pack for a marketing team. It produces campaign strategy, ad copy variants, visual concept prompts, offline mock creative previews, mock asset sources, budget guidance, A/B testing recommendations, KPI guidance, and a reflection section for responsible use.
+AI Campaign Agent is a Streamlit prototype that turns a campaign trigger into a full
+campaign pack for a marketing team. It is built around a single brand — **Estrella Damm** —
+and **grounds every new campaign on that brand's past campaigns and their performance
+data**, so the output reflects what has actually worked before rather than generic copy.
 
-The project can run in **Free demo mode** without an OpenRouter API key. OpenRouter image generation is optional and should only be used if the team chooses to pay for API usage.
+The agent produces a trigger classification, a data-backed decision (which creative
+angle to lead with and why), campaign strategy, ad copy, visual concept prompts, offline
+mock creative previews, mock asset sources, a budget split, an A/B test matrix, KPI
+guidance, and a responsible-use reflection.
 
-The app includes an **Estrella beer mock campaign** preset so the group can present the project as if they are the marketing team for one beer brand. The user can type an external trigger, such as "The sun is out so we want people to go to beer gardens or the park and enjoy a nice cold beer", and the agent turns that trigger into a full Estrella-aligned campaign.
+## What makes it an agent (not just a prompt)
 
-## Marketing Problem
+The pipeline combines **classification, retrieval, AI reasoning, and decision support**:
 
-Marketing teams often need to react quickly to external moments: weather, events, trends, seasonality, or cultural moments. This agent helps by converting a trigger sentence and structured brief into a first campaign pack that supports faster planning and clearer decision-making.
+1. **Classify** — the free-text trigger is turned into structured tags
+   (`season`, `themes`, `urgency`, `suggested_angle`, `risk_flags`).
+2. **Retrieve** — the most relevant past campaigns are pulled from the brand
+   knowledge base (`data/estrella/`) by matching theme, season, channel, and goal.
+3. **Decide** — historical results (`results.csv`) are aggregated into benchmarks,
+   and the agent recommends the creative angle that has historically won for this
+   goal (CTR for awareness, ROAS for sales), with expected-performance ranges.
+4. **Generate** — strategy and copy are produced **grounded on** the brand
+   guidelines and the retrieved winning campaigns.
+5. **Report** — everything is assembled into a campaign pack with data-derived
+   reasoning, KPI guidance, limitations, and ethical considerations.
 
-## Target User
+## Generation modes
 
-The target user is a junior marketer, social media manager, or small marketing team preparing a paid social campaign.
+| Mode | What it does | Needs |
+|---|---|---|
+| **Gemini (live AI)** | Classifier, strategy, copy, and decision narrative use Google's Gemini, grounded on the brand data | Free Gemini API key |
+| **Free offline demo** | Same pipeline, deterministic rules instead of a live model. No network, never fails | Nothing |
+| **OpenRouter API** | Optional alternative LLM provider + optional paid image generation | OpenRouter key |
 
-## Agent Workflow
+The knowledge layer (past campaigns + benchmarks + decision) runs the **same in every
+mode** — only the text generation switches between a live model and deterministic rules.
 
-1. The user chooses a campaign preset or creates a custom campaign.
-2. The user enters a campaign trigger, such as sunny weather, an event, or a seasonal moment.
-3. The user enters a creative brief with brand, product, audience, goal, budget, channel, tone, duration, and CTA.
-4. The strategy agent creates a trigger-based campaign plan with positioning, message pillars, content plan, and launch checklist.
-5. The copy agent generates three ad copy variants.
-6. The visual agent creates three visual concept prompts for campaign posters.
-7. The mockup agent creates three offline mock creative image previews.
-8. The asset agent suggests free mock/reference image sources for academic campaign concepts.
-9. The budget agent splits the budget across prospecting, retargeting, and creative testing.
-10. The A/B testing agent combines copy, visual prompts, and mock assets into a test matrix.
-11. The report agent assembles the final campaign pack, adds decision rationale, KPI guidance, limitations, and ethical considerations.
+## Marketing problem
 
-## No-Cost Demo Mode
+Marketing teams need to react quickly to external moments (weather, events, seasonality).
+This agent converts a trigger sentence and brief into a first campaign pack **informed by
+the brand's own history**, supporting faster planning and clearer, evidence-based decisions.
 
-The default mode is **Free demo mode**. It does not call OpenRouter and does not require a paid API key.
+## Target user
 
-Free demo mode includes:
+A junior marketer, social media manager, or small marketing team preparing a paid
+social campaign for an established brand.
 
-- Estrella beer mock campaign preset
-- Campaign trigger input
-- Whole campaign strategy
-- Campaign copy variants
-- Visual strategy prompts
-- Offline generated mock creative previews
-- Mock asset sources
-- Budget recommendation
-- A/B testing plan
-- Agent reasoning
-- KPI plan
-- Reflection and responsible-use notes
-
-Paid OpenRouter mode is optional and only needed for live model/image generation.
-
-## Run Locally
+## Run locally
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate         # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Then select **Free demo mode** in the app.
+Select **Free offline demo** to run with no key, or **Gemini (live AI)** after adding a key.
 
-## Optional OpenRouter Setup
+## Gemini setup (free tier)
 
-Only use this if the team chooses to use paid API calls.
+1. Get a free API key from <https://aistudio.google.com> (no billing card required).
+2. Copy the env template and add your key:
 
 ```bash
 cp .env.template .env
 ```
 
-Add an OpenRouter API key to `.env`:
-
 ```bash
-OPENROUTER_API_KEY=your_key_here
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-The manual API check is kept outside the normal test suite:
+Free-tier rate limits apply. Each campaign run makes ~4 model calls; the offline demo
+mode is the safe fallback for live presentations.
+
+### Optional: AI image generation
+
+Tick **"Generate AI campaign images"** (Gemini or OpenRouter mode) to generate real
+poster images from the visual prompts. Gemini uses `gemini-2.5-flash-image` and costs a
+few cents per image, so it is opt-in and **off by default**. It is capped by
+`MAX_IMAGES_PER_CAMPAIGN`, and an image failure (e.g. a safety refusal on alcohol
+creative) never breaks the rest of the campaign pack. Quick single-image test:
 
 ```bash
-python scripts/manual_openrouter_check.py
+python scripts/check_gemini_image.py
 ```
 
-## Run Tests
+## Run tests
 
 ```bash
 pytest
 ```
 
-The test suite uses fake/demo clients and should not require paid API calls.
+Tests use offline/deterministic clients and never call a paid API.
 
-## Project Structure
+## Project structure
 
 ```text
-app.py                         Streamlit user interface
-config/settings.py             Environment settings
-src/orchestrator.py            Coordinates all agents
-src/agents/strategy_agent.py   Creates campaign strategy
-src/agents/copy_agent.py       Generates ad copy
-src/agents/visual_agent.py     Generates visual concept prompts
-src/agents/mockup_agent.py     Creates offline mock creative previews
-src/agents/asset_agent.py      Suggests mock image sources
-src/agents/budget_agent.py     Creates budget split
-src/agents/ab_test_agent.py    Creates A/B test matrix
-src/agents/report_agent.py     Builds final campaign pack
-src/clients/demo_client.py     Free local demo generator
+app.py                          Streamlit user interface
+config/settings.py              Environment settings (Gemini, OpenRouter)
+data/estrella/                  Brand knowledge base
+  brand_guidelines.md           Brand voice/positioning the agent reasons against
+  campaigns.json                Real past campaigns (briefs + creative)
+  results.csv                   Per-variant historical performance metrics
+  PROVENANCE.md                 What is real vs. modelled, and how to source real data
+src/orchestrator.py             Coordinates the classify -> retrieve -> decide -> generate flow
+src/knowledge/campaign_store.py Loads + retrieves relevant past campaigns
+src/knowledge/benchmarks.py     Aggregates historical results into benchmarks
+src/agents/classifier_agent.py  Trigger -> structured tags (AI + rules)
+src/agents/decision_agent.py    Data-backed angle/budget recommendation
+src/agents/strategy_agent.py    Campaign strategy, grounded on past campaigns
+src/agents/copy_agent.py        Ad copy, grounded on past winning copy
+src/agents/visual_agent.py      Visual concept prompts
+src/agents/mockup_agent.py      Offline mock creative previews
+src/agents/asset_agent.py       Mock/reference image sources
+src/agents/budget_agent.py      Budget split
+src/agents/ab_test_agent.py     A/B test matrix
+src/agents/report_agent.py      Assembles the final campaign pack
+src/clients/gemini_client.py    Live Gemini client (free tier)
+src/clients/demo_client.py      Offline deterministic client
 src/clients/openrouter_client.py Optional OpenRouter client
-tests/                         Unit tests
-docs/submission_guide.md       Assignment-ready write-up
+tests/                          Unit tests (offline)
+docs/                           Submission guide + development notes
 ```
 
 ## Limitations
 
-- Free demo mode is deterministic and does not use a live AI model.
-- Offline mock creative previews are draft layout assets, not AI-generated photography.
-- The prototype does not connect to live campaign, CRM, or competitor data.
-- Generated recommendations should be reviewed by a human marketer before real use.
-- Paid image generation is optional and not required for the academic demo.
-- Mock images are for academic demonstration and should be reviewed before any real commercial use.
+- Historical results in `data/estrella/results.csv` are **realistic but synthetic**;
+  replace them with a real Ads Manager export before relying on the numbers.
+- Past campaign copy is paraphrased for academic use, not the brand's verbatim copy.
+- The prototype does not connect to a live ad account, CRM, or competitor data.
+- Generated copy needs human review for brand accuracy and platform policy compliance.
+- Offline mock creatives are draft layouts, not final AI-generated photography.
+- For alcohol, target only legal-drinking-age audiences and review responsible-drinking rules.
 
-## Mock Asset Sources
-
-The Estrella preset includes mock/reference image sources that can help the group explain campaign visuals:
-
-- Wikimedia Commons Estrella bottle reference: https://commons.wikimedia.org/wiki/File:Estrella2014.jpg
-- Unsplash beer bar lifestyle reference: https://unsplash.com/photos/group-of-friends-at-the-cellar-bar-8LlEY7DEvWo
-- Pexels beer bar lifestyle reference: https://www.pexels.com/photo/friends-with-beers-at-a-bar-3851576/
-
-These should be treated as academic mockup sources, not official brand-approved campaign assets.
+See `data/estrella/PROVENANCE.md` for data sourcing and how to make it fully real.

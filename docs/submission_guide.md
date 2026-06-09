@@ -23,42 +23,66 @@
 
 **Process followed by the agent:**
 
-1. Interprets the campaign trigger and brief.
-2. Applies the Estrella brand profile to keep the output Mediterranean, social, summery, and responsible.
-3. Builds a campaign strategy with positioning, message pillars, content plan, and launch checklist.
-4. Generates ad copy variants.
-5. Creates visual concept prompts.
-6. Generates offline mock creative previews.
+1. **Classifies** the free-text trigger into structured tags (season, themes, urgency, suggested angle, risk flags).
+2. **Retrieves** the most relevant past Estrella campaigns from the brand knowledge base by matching theme, season, channel, and goal.
+3. **Decides**, from historical results, which creative angle has historically won for this goal (CTR for awareness, ROAS for sales), with an expected-performance range and a budget tilt.
+4. Builds a campaign strategy (positioning, message pillars, content plan, launch checklist) **grounded on** the brand guidelines and the retrieved winning campaigns.
+5. Generates ad copy variants grounded on past winning copy.
+6. Creates visual concept prompts and offline mock creative previews.
 7. Suggests mock/reference image sources.
-8. Splits the budget into campaign buckets.
-9. Builds an A/B test matrix.
-10. Produces an executive recommendation, KPI plan, assumptions, limitations, and ethical considerations.
+8. Splits the budget into campaign buckets and builds an A/B test matrix.
+9. Produces an executive recommendation, KPI plan, data-derived reasoning, assumptions, limitations, and ethical considerations.
 
-**Final output generated:** A campaign pack containing strategy, copy, visual concepts, offline mock creative previews, mock asset sources, budget recommendation, test plan, reasoning notes, KPI guidance, and reflection.
+**Final output generated:** A campaign pack containing a trigger classification, a data-backed decision, the past campaigns it learned from, a historical-performance benchmark table, strategy, copy, visual concepts, offline mock creative previews, mock asset sources, budget recommendation, test plan, reasoning notes, KPI guidance, and reflection.
 
-**Expected business value:** The agent helps marketers move faster from idea to first campaign draft. It supports decision-making by making recommendations explicit and by giving the team a structured plan to test and improve.
+**Expected business value:** The agent helps marketers move faster from idea to first campaign draft, and grounds the recommendation in the brand's own past performance instead of generic copy. It supports decision-making by making the evidence and recommended angle explicit.
 
 ## 2. Technical Design
 
-The prototype uses a modular agent design:
+The prototype uses a modular agent design with a knowledge layer:
 
 ```text
 User brief
   -> CampaignOrchestrator
-  -> StrategyAgent
-  -> CopyAgent
-  -> VisualAgent
-  -> MockupAgent
-  -> AssetAgent
-  -> BudgetAgent
-  -> ABTestAgent
+  -> ClassifierAgent        (trigger -> structured tags; AI or rules)
+  -> CampaignStore.retrieve (top-k relevant past campaigns from data/estrella/)
+  -> Benchmarks             (aggregate results.csv by angle/audience)
+  -> DecisionAgent          (data-backed angle + budget recommendation)
+  -> StrategyAgent          (grounded on brand guidelines + past campaigns)
+  -> CopyAgent              (grounded on past winning copy)
+  -> VisualAgent / MockupAgent / AssetAgent
+  -> BudgetAgent / ABTestAgent
   -> ReportAgent
   -> Campaign pack
 ```
 
-**StrategyAgent:** Interprets the trigger and creates a whole-campaign plan, including campaign name, objective, positioning, message pillars, content plan, and launch checklist.
+**Generation modes:** *Gemini (live AI)* uses Google's free-tier Gemini for
+classification, strategy, copy, and the decision narrative. *Free offline demo* runs the
+same pipeline with deterministic rules. *OpenRouter API* is an optional alternative LLM +
+paid image generation. The knowledge/retrieval/decision layer is identical in all modes.
 
-**CopyAgent:** Generates three ad copy variants. In free demo mode, this is handled locally by `DemoClient`. In optional OpenRouter mode, it can call an external AI model.
+**ClassifierAgent:** Turns the free-text trigger into structured tags (season, themes,
+urgency, suggested angle, compliance risk flags) so the pipeline routes on structure, not
+keyword guesses.
+
+**CampaignStore + Benchmarks (knowledge layer):** `CampaignStore` loads the brand's past
+campaigns (`data/estrella/campaigns.json`) and brand guidelines, and retrieves the most
+relevant past campaigns for the new brief. `Benchmarks` aggregates per-variant historical
+results (`data/estrella/results.csv`) into averages by creative angle and audience type.
+
+**DecisionAgent:** The core decision-support step. It computes — from the benchmarks —
+which angle has historically performed best for the campaign goal (CTR for awareness,
+ROAS for sales), an expected-performance range, and a budget tilt. Numbers are computed
+deterministically so they are never hallucinated; in live mode the model only writes the
+reasoning over those numbers.
+
+**StrategyAgent:** Creates the whole-campaign plan (name, objective, positioning, message
+pillars, content plan, launch checklist), grounded on the brand guidelines and the
+retrieved past campaigns.
+
+**CopyAgent:** Generates three ad copy variants, grounded on the brand voice and the
+copy of past campaigns that performed well. Live mode uses the model; offline uses
+deterministic copy.
 
 **VisualAgent:** Creates three image prompts that can be used as visual strategy notes or sent to an image model.
 
@@ -92,49 +116,57 @@ Generation mode: Free demo mode
 
 **Processing steps:**
 
-1. The orchestrator receives the structured brief.
-2. The strategy agent interprets the sunny-weather trigger and creates the whole-campaign plan.
-3. The copy agent creates three possible ad messages.
-4. The visual agent creates three poster concept prompts.
-5. The mockup agent creates three offline visual ad previews.
-6. The asset agent recommends mock/reference image sources.
-7. The budget agent recommends a daily budget and media split.
-8. The A/B testing agent creates variants A-D.
-9. The report agent creates the final campaign pack and explains the reasoning.
+1. The classifier reads the trigger → season: summer, themes: summer/outdoor/social, urgency: high, risk flag: alcohol.
+2. The store retrieves the most relevant past campaigns (e.g. *Terrace Retargeting Push*, *Cold & Crisp Summer Offer*, *Summer '78*).
+3. The benchmarks show product-led/retargeting historically won on ROAS (~4.x) and CPA, while purpose angles converted worst.
+4. The decision agent recommends the **product-led** angle for this Sales goal, with an expected ROAS range (~3.1–4.2) and a budget tilt toward retargeting.
+5. The strategy and copy agents generate an on-brand plan and three copy variants grounded on those past winners.
+6. The visual, mockup, asset, budget, and A/B agents produce the supporting creative and media plan.
+7. The report agent assembles the pack and surfaces the data-derived reasoning.
 
-**Final output:** The app displays an executive recommendation, campaign strategy, campaign brief, copy variants, generated mock creative previews, visual strategy notes, mock asset sources, budget split, A/B test plan, KPI plan, assumptions, limitations, and responsible-use notes.
+**Final output:** The app displays the trigger classification, the data-backed decision
+(recommended angle, evidence, expected performance), the past campaigns it learned from, a
+historical-performance-by-angle table, an executive recommendation, campaign strategy,
+copy variants, mock creative previews, visual strategy notes, mock asset sources, budget
+split, A/B test plan, KPI plan, assumptions, limitations, and responsible-use notes.
 
-**Usefulness for a marketing team:** The output is useful as a first draft for planning. A marketer could review the copy, choose the strongest visual direction, prepare a small test, and adjust the budget based on early campaign results.
+**Usefulness for a marketing team:** The output is a first draft that is *justified by the
+brand's own history*. A marketer sees not just suggested copy but which angle the data
+backs, the expected performance range, and where to weight budget — then validates and
+runs a small test.
+
+**Sample output (offline run, Sales brief):** recommended angle `product-led`; primary
+metric `ROAS`; expected ROAS `3.11–4.21`, CTR `0.95–1.29%`, CPA `6.15–8.33`; grounded on
+the 2022/2023 product/retargeting summer campaigns.
 
 ## 4. Reflection
 
 **What the agent does well:**
 
-- Turns a brief into a structured campaign pack.
-- Reacts to an external trigger instead of only filling a generic brief.
-- Keeps the project focused around one company for a clearer demonstration.
-- Shows a clear input, processing, and output workflow.
-- Produces multiple creative variants instead of one answer.
-- Gives budget and A/B testing recommendations that support decision-making.
-- Runs in free demo mode without paid API usage.
+- Goes beyond prompting: it **classifies, retrieves, reasons, and decides**.
+- Grounds new campaigns on the brand's **own past campaigns and performance data**.
+- Makes a **data-backed decision** (recommended angle + expected performance + budget tilt) rather than just generating text.
+- Computes all metrics deterministically so figures are never hallucinated, while still using AI for reasoning and generation.
+- Uses brand guidelines as an input, keeping output on-brand.
+- Runs with a free-tier model and has a deterministic offline fallback that never fails in a live demo.
+- Produces multiple creative variants and a full, structured campaign pack.
 
 **Limitations:**
 
-- Free demo mode is deterministic and does not use a live AI model.
-- Offline mock creative previews are draft layouts and not final professional image generation.
-- It does not use real campaign performance data.
-- It does not check competitor activity, platform policy, or brand guidelines.
-- It uses mock/reference image sources, not official approved brand assets.
-- Budget rules are simplified for academic demonstration.
+- The historical results are **realistic but synthetic** (see `PROVENANCE.md`); they should be replaced with a real Ads Manager export before the numbers are trusted.
+- Past campaign copy is paraphrased for academic use, not the brand's verbatim copy.
+- It does not connect to a live ad account, CRM, or competitor data.
+- Retrieval is tag/keyword based (not semantic embeddings).
+- Free-tier model rate limits constrain heavy use; offline mode is the fallback.
+- Offline mock creatives are draft layouts, not final professional imagery.
 
 **How it could be improved:**
 
-- Connect to real ad performance data.
-- Add brand guidelines as an input.
-- Score copy variants against campaign goals.
-- Export the campaign pack as a PDF.
-- Add an official brand asset upload step.
-- Add approval steps for human review.
+- Replace synthetic results with a real Meta Ads Manager export and real Ad Library copy.
+- Add embeddings-based semantic retrieval (`text-embedding-004`).
+- Add a PDF export of the campaign pack and a brand-guidelines upload step.
+- Add a human approval/sign-off step before any real launch.
+- Expand the knowledge base to multiple brands.
 
 **Risks and ethical considerations:**
 

@@ -1,5 +1,3 @@
-import base64
-from urllib import response
 import requests
 
 from config.settings import settings
@@ -7,6 +5,8 @@ from src.utils.json_utils import extract_json
 
 
 class OpenRouterClient:
+    is_live = True
+
     def __init__(self):
         if not settings.OPENROUTER_API_KEY:
             raise ValueError("OPENROUTER_API_KEY is missing. Add it to your .env file.")
@@ -17,13 +17,16 @@ class OpenRouterClient:
             "X-OpenRouter-Title": settings.APP_NAME,
         }
 
-    def generate_text(self, prompt: str):
+    def generate_json(self, prompt: str, system: str | None = None):
+        return self.generate_text(prompt, system=system)
+
+    def generate_text(self, prompt: str, system: str | None = None):
         payload = {
             "model": settings.TEXT_MODEL,
             "messages": [
                 {
                     "role": "system",
-                    "content": (
+                    "content": system or (
                         "You are an expert digital advertising strategist. "
                         "Return ONLY valid JSON. No markdown. No explanation."
                     ),

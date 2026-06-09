@@ -1,0 +1,236 @@
+[
+  {
+    "id": "med-2009-formentera",
+    "year": 2009,
+    "name": "Mediterraneamente: Formentera",
+    "trigger": "Start of the Mediterranean summer season",
+    "season": "summer",
+    "theme": ["summer", "mediterranean", "beach", "friendship", "music"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "young adults 18-34 in Spain and export markets who love summer and the coast",
+    "positioning": "Estrella Damm as the soundtrack and companion of the Mediterranean summer.",
+    "creative": {
+      "angle": "lifestyle",
+      "headline": "This is the Mediterranean way",
+      "primary_text": "A summer on Formentera, friends, the sea and a cold Estrella Damm. The little ritual that starts the season. Mediterraneamente.",
+      "cta": "Discover"
+    },
+    "results_summary": {
+      "ctr": 1.9,
+      "cpc": 0.34,
+      "conversion_rate": 1.8,
+      "cpa": 18.9,
+      "roas": 2.1,
+      "note": "Launched the franchise; very strong reach and engagement, modest direct conversion."
+    }
+  },
+  {
+    "id": "med-2014-santa-clara",
+    "year": 2014,
+    "name": "Mediterraneamente: Santa Clara Fest",
+    "trigger": "Festival season and summer music moment",
+    "season": "summer",
+    "theme": ["summer", "music", "festival", "friendship", "mediterranean"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "music-loving young adults 18-30 across Spain",
+    "positioning": "Estrella Damm at the heart of the summer festival and music culture.",
+    "creative": {
+      "angle": "music-culture",
+      "headline": "The festival of the summer",
+      "primary_text": "An island, a secret festival and the song of the summer by The Vaccines. Bring your friends. Mediterraneamente.",
+      "cta": "Watch"
+    },
+    "results_summary": {
+      "ctr": 2.1,
+      "cpc": 0.31,
+      "conversion_rate": 1.6,
+      "cpa": 19.4,
+      "roas": 2.0,
+      "note": "Music tie-in drove the highest engagement and video views of the period."
+    }
+  },
+  {
+    "id": "med-2016-little-things",
+    "year": 2016,
+    "name": "Mediterraneamente: Las Pequenas Cosas",
+    "trigger": "Summer reunion of old friends",
+    "season": "summer",
+    "theme": ["summer", "friendship", "nostalgia", "mediterranean", "the-little-things"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "adults 25-45 who value friendship and Mediterranean summers",
+    "positioning": "Estrella Damm celebrates the small, shared moments that make the Mediterranean summer.",
+    "creative": {
+      "angle": "emotional-narrative",
+      "headline": "It's the little things",
+      "primary_text": "A reunion, a coastal town, and the friends who always come back. Estrella Damm is there for the little things that mean everything. Mediterraneamente.",
+      "cta": "Watch the film"
+    },
+    "results_summary": {
+      "ctr": 2.0,
+      "cpc": 0.30,
+      "conversion_rate": 1.9,
+      "cpa": 15.8,
+      "roas": 2.3,
+      "note": "Emotional short-film format produced strong completion rates and brand recall."
+    }
+  },
+  {
+    "id": "med-2017-life-of-us",
+    "year": 2017,
+    "name": "Mediterraneamente: The Life of Us",
+    "trigger": "Start of summer and the desire to live in the moment",
+    "season": "summer",
+    "theme": ["summer", "friendship", "emotional", "mediterranean", "live-the-moment"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "adults 25-44, broad summer lifestyle audience",
+    "positioning": "Estrella Damm as the reminder to live the present and enjoy life together.",
+    "creative": {
+      "angle": "emotional-narrative",
+      "headline": "Live the life of us",
+      "primary_text": "A summer story narrated by Peter Dinklage about choosing the people and moments that matter. Mediterraneamente.",
+      "cta": "Watch the film"
+    },
+    "results_summary": {
+      "ctr": 1.8,
+      "cpc": 0.33,
+      "conversion_rate": 1.7,
+      "cpa": 19.4,
+      "roas": 2.2,
+      "note": "Celebrity narration lifted reach; engagement strong but slightly below 2016."
+    }
+  },
+  {
+    "id": "sustain-2018-pack-rings",
+    "year": 2018,
+    "name": "The End of Plastic Pack Rings",
+    "trigger": "Brand sustainability commitment to protect the Mediterranean sea",
+    "season": "year-round",
+    "theme": ["sustainability", "purpose", "environment", "mediterranean", "responsibility"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "environmentally conscious adults 18-45",
+    "positioning": "Estrella Damm as a brand that protects the Mediterranean it celebrates.",
+    "creative": {
+      "angle": "purpose-sustainability",
+      "headline": "Protecting the sea we love",
+      "primary_text": "We are replacing plastic pack rings to help protect the Mediterranean. Because the sea gives us everything. Mediterraneamente.",
+      "cta": "Learn more"
+    },
+    "results_summary": {
+      "ctr": 1.7,
+      "cpc": 0.36,
+      "conversion_rate": 1.1,
+      "cpa": 32.7,
+      "roas": 1.4,
+      "note": "Purpose message drove shares and positive sentiment but weak direct sales response."
+    }
+  },
+  {
+    "id": "med-2020-act-iii",
+    "year": 2020,
+    "name": "Mediterraneamente: Act III - Commitment",
+    "trigger": "Reopening of social life and renewed environmental commitment",
+    "season": "summer",
+    "theme": ["summer", "sustainability", "mediterranean", "responsibility", "reunion"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "adults 25-45 reconnecting with social life",
+    "positioning": "Estrella Damm pairs the joy of returning to social moments with a commitment to the sea.",
+    "creative": {
+      "angle": "purpose-sustainability",
+      "headline": "Our commitment to the Mediterranean",
+      "primary_text": "Back to the terraces, the coast and the people we missed, with a promise to protect what we love. Mediterraneamente.",
+      "cta": "Learn more"
+    },
+    "results_summary": {
+      "ctr": 1.6,
+      "cpc": 0.38,
+      "conversion_rate": 1.3,
+      "cpa": 29.2,
+      "roas": 1.6,
+      "note": "Hybrid emotional + purpose message; mid engagement, below-average conversion."
+    }
+  },
+  {
+    "id": "product-2022-cold-crisp",
+    "year": 2022,
+    "name": "Cold & Crisp Summer Offer",
+    "trigger": "Heatwave and direct summer sales push",
+    "season": "summer",
+    "theme": ["summer", "product", "refreshment", "offer", "heatwave"],
+    "channel": "Instagram",
+    "goal": "Sales",
+    "audience": "adults 18-34 buying beer for terraces, parks and home",
+    "positioning": "Estrella Damm as the perfectly cold, crisp Mediterranean lager for hot days.",
+    "creative": {
+      "angle": "product-led",
+      "headline": "Ice-cold. Crisp. Estrella Damm.",
+      "primary_text": "The sun is out. Grab a perfectly cold Estrella Damm for the terrace or the park. Stock up for the weekend now.",
+      "cta": "Shop now"
+    },
+    "results_summary": {
+      "ctr": 1.0,
+      "cpc": 0.27,
+      "conversion_rate": 4.6,
+      "cpa": 5.9,
+      "roas": 4.1,
+      "note": "Lower CTR but by far the best CPA and ROAS; product-led + offer converted strongly."
+    }
+  },
+  {
+    "id": "retarget-2023-terrace",
+    "year": 2023,
+    "name": "Terrace Retargeting Push",
+    "trigger": "Summer terrace season, retargeting engaged users",
+    "season": "summer",
+    "theme": ["summer", "product", "retargeting", "terrace", "conversion"],
+    "channel": "Instagram",
+    "goal": "Sales",
+    "audience": "users who engaged with summer brand content in the last 30 days",
+    "positioning": "Estrella Damm as the easy choice to complete the terrace plan.",
+    "creative": {
+      "angle": "product-led",
+      "headline": "Your terrace plan is missing one thing",
+      "primary_text": "You were thinking about it. Make the plan real with a cold Estrella Damm. Find it near you or order for the weekend.",
+      "cta": "Shop now"
+    },
+    "results_summary": {
+      "ctr": 1.2,
+      "cpc": 0.25,
+      "conversion_rate": 5.4,
+      "cpa": 4.6,
+      "roas": 4.6,
+      "note": "Best converter in the dataset; retargeting warm audiences with a product-led, action message."
+    }
+  },
+  {
+    "id": "med-2025-summer78",
+    "year": 2025,
+    "name": "Mediterraneamente: Summer '78",
+    "trigger": "Summer nostalgia and two-generation reunion",
+    "season": "summer",
+    "theme": ["summer", "nostalgia", "friendship", "mediterranean", "music"],
+    "channel": "Instagram",
+    "goal": "Awareness",
+    "audience": "adults 25-55, multi-generational summer audience",
+    "positioning": "Estrella Damm bridges generations through the timeless Mediterranean summer.",
+    "creative": {
+      "angle": "emotional-narrative",
+      "headline": "One summer, two generations",
+      "primary_text": "A 1978 summer remembered today, the same sea, the same songs, the same Estrella Damm. Some things never change. Mediterraneamente.",
+      "cta": "Watch the film"
+    },
+    "results_summary": {
+      "ctr": 2.2,
+      "cpc": 0.29,
+      "conversion_rate": 2.0,
+      "cpa": 14.5,
+      "roas": 2.5,
+      "note": "Nostalgia angle delivered the highest CTR and best awareness-era ROAS to date."
+    }
+  }
+]

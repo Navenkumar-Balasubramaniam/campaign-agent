@@ -1,4 +1,12 @@
 class DemoClient:
+    """Offline, deterministic fallback. No API key or network needed.
+
+    Used as the safe demo path and whenever a live model is unavailable.
+    Agents check `is_live` to decide between AI generation and templates.
+    """
+
+    is_live = False
+
     def generate_copy(self, brief):
         brand = brief.brand
         product = brief.product
