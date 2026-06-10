@@ -20,6 +20,7 @@
 - Tone
 - Duration
 - Call to action
+- Reference images (optional): a product photo and/or campaign reference images that ground the generated visuals
 
 **Process followed by the agent:**
 
@@ -28,12 +29,11 @@
 3. **Decides**, from historical results, which creative angle has historically won for this goal (CTR for awareness, ROAS for sales), with an expected-performance range and a budget tilt.
 4. Builds a campaign strategy (positioning, message pillars, content plan, launch checklist) **grounded on** the brand guidelines and the retrieved winning campaigns.
 5. Generates ad copy variants grounded on past winning copy.
-6. Creates visual concept prompts and offline mock creative previews.
-7. Suggests mock/reference image sources.
-8. Splits the budget into campaign buckets and builds an A/B test matrix.
-9. Produces an executive recommendation, KPI plan, data-derived reasoning, assumptions, limitations, and ethical considerations.
+6. Creates visual concept prompts and, when enabled, generates real AI campaign images from them — grounded on any uploaded product/reference images so the visual matches the real product and brand.
+7. Splits the budget into campaign buckets and builds an A/B test matrix.
+8. Produces an executive recommendation, KPI plan, data-derived reasoning, assumptions, limitations, and ethical considerations.
 
-**Final output generated:** A campaign pack containing a trigger classification, a data-backed decision, the past campaigns it learned from, a historical-performance benchmark table, strategy, copy, visual concepts, offline mock creative previews, mock asset sources, budget recommendation, test plan, reasoning notes, KPI guidance, and reflection.
+**Final output generated:** A campaign pack containing a trigger classification, a data-backed decision, the past campaigns it learned from, a historical-performance benchmark table, strategy, copy, visual concepts, generated AI campaign images (or offline mock creative previews as a fallback), budget recommendation, test plan, reasoning notes, KPI guidance, and reflection.
 
 **Expected business value:** The agent helps marketers move faster from idea to first campaign draft, and grounds the recommendation in the brand's own past performance instead of generic copy. It supports decision-making by making the evidence and recommended angle explicit.
 
@@ -56,10 +56,14 @@ User brief
   -> Campaign pack
 ```
 
-**Generation modes:** *Gemini (live AI)* uses Google's free-tier Gemini for
-classification, strategy, copy, and the decision narrative. *Free offline demo* runs the
-same pipeline with deterministic rules. *OpenRouter API* is an optional alternative LLM +
-paid image generation. The knowledge/retrieval/decision layer is identical in all modes.
+**Generation modes (a dropdown):** *OpenRouter* runs the **entire grounded pipeline**
+— classification, strategy, copy, and the decision narrative — on free, openly available
+language models, so the full AI prototype works with no paid key. *Gemini* uses Google's
+Gemini models (via an API key or Vertex AI) and produces the strongest reference-matched
+images. *Offline demo* runs the same pipeline with deterministic rules and needs no key at
+all. The knowledge/retrieval/decision layer is identical in every mode, so the *reasoning*
+and *decision* are consistent regardless of which model writes the narrative. Both live
+modes can also generate real campaign images and accept uploaded reference images.
 
 **ClassifierAgent:** Turns the free-text trigger into structured tags (season, themes,
 urgency, suggested angle, compliance risk flags) so the pipeline routes on structure, not
@@ -84,11 +88,13 @@ retrieved past campaigns.
 copy of past campaigns that performed well. Live mode uses the model; offline uses
 deterministic copy.
 
-**VisualAgent:** Creates three image prompts that can be used as visual strategy notes or sent to an image model.
+**VisualAgent:** Creates three image prompts that act as visual strategy notes and as the input to image generation.
 
-**MockupAgent:** Creates three offline PNG mock creative previews in free demo mode. These are draft layout assets, not final AI-generated photography.
+**Image generation:** When the user opts in, the live clients turn the visual prompts into real campaign images. If the user uploaded a product photo or reference images, those are passed to the image model as visual ground truth so the result keeps the product's real appearance, packaging, and logo. The Gemini image model gives the strongest reference matching.
 
-**AssetAgent:** Suggests free mock/reference image sources that can be used for academic campaign concepts. These include a Commons Estrella bottle reference and free lifestyle sources from Unsplash/Pexels.
+**MockupAgent:** Creates offline PNG mock creative previews used as a fallback when no real AI images are generated (e.g. offline mode). These are draft layout assets, not final photography.
+
+**AssetAgent:** Suggests free mock/reference image sources (a Commons Estrella bottle reference and free lifestyle sources) for academic campaign concepts when no images are generated.
 
 **BudgetAgent:** Applies simple decision rules. For Instagram, Facebook, and Meta campaigns, it splits budget into prospecting, retargeting, and creative testing.
 
@@ -111,7 +117,7 @@ Channel: Instagram
 Tone: Fun, party, good vibes
 Duration: 14 days
 CTA: Shop Now
-Generation mode: Free demo mode
+Generation mode: Offline demo (or OpenRouter for the free live-AI run)
 ```
 
 **Processing steps:**
@@ -127,8 +133,9 @@ Generation mode: Free demo mode
 **Final output:** The app displays the trigger classification, the data-backed decision
 (recommended angle, evidence, expected performance), the past campaigns it learned from, a
 historical-performance-by-angle table, an executive recommendation, campaign strategy,
-copy variants, mock creative previews, visual strategy notes, mock asset sources, budget
-split, A/B test plan, KPI plan, assumptions, limitations, and responsible-use notes.
+copy variants, generated AI campaign images (or mock creative previews as a fallback),
+visual strategy notes, any uploaded reference images, budget split, A/B test plan, KPI
+plan, assumptions, limitations, and responsible-use notes.
 
 **Usefulness for a marketing team:** The output is a first draft that is *justified by the
 brand's own history*. A marketer sees not just suggested copy but which angle the data
@@ -148,7 +155,8 @@ the 2022/2023 product/retargeting summer campaigns.
 - Makes a **data-backed decision** (recommended angle + expected performance + budget tilt) rather than just generating text.
 - Computes all metrics deterministically so figures are never hallucinated, while still using AI for reasoning and generation.
 - Uses brand guidelines as an input, keeping output on-brand.
-- Runs with a free-tier model and has a deterministic offline fallback that never fails in a live demo.
+- Runs the **whole AI pipeline on free models** (OpenRouter mode) and keeps a deterministic offline fallback, so the full prototype works with no paid key and never fails in a live demo.
+- Generates real campaign images and can **ground them on an uploaded product photo**, so visuals match the actual product rather than a generic stand-in.
 - Produces multiple creative variants and a full, structured campaign pack.
 
 **Limitations:**
@@ -157,7 +165,7 @@ the 2022/2023 product/retargeting summer campaigns.
 - Past campaign copy is paraphrased for academic use, not the brand's verbatim copy.
 - It does not connect to a live ad account, CRM, or competitor data.
 - Retrieval is tag/keyword based (not semantic embeddings).
-- Free-tier model rate limits constrain heavy use; offline mode is the fallback.
+- Free models have per-minute rate limits; the clients retry with backoff to absorb short bursts, and offline mode remains the ultimate fallback.
 - Offline mock creatives are draft layouts, not final professional imagery.
 
 **How it could be improved:**

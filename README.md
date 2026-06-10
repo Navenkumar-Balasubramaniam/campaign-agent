@@ -6,9 +6,9 @@ and **grounds every new campaign on that brand's past campaigns and their perfor
 data**, so the output reflects what has actually worked before rather than generic copy.
 
 The agent produces a trigger classification, a data-backed decision (which creative
-angle to lead with and why), campaign strategy, ad copy, visual concept prompts, offline
-mock creative previews, mock asset sources, a budget split, an A/B test matrix, KPI
-guidance, and a responsible-use reflection.
+angle to lead with and why), campaign strategy, ad copy, visual concept prompts,
+real AI campaign images (or mock creative previews as a fallback), a budget split, an
+A/B test matrix, KPI guidance, and a responsible-use reflection.
 
 ## What makes it an agent (not just a prompt)
 
@@ -30,12 +30,14 @@ The pipeline combines **classification, retrieval, AI reasoning, and decision su
 
 | Mode | What it does | Needs |
 |---|---|---|
-| **Gemini (live AI)** | Classifier, strategy, copy, and decision narrative use Google's Gemini, grounded on the brand data | Free Gemini API key |
-| **Free offline demo** | Same pipeline, deterministic rules instead of a live model. No network, never fails | Nothing |
-| **OpenRouter API** | Optional alternative LLM provider + optional paid image generation | OpenRouter key |
+| **OpenRouter** | Runs the **entire grounded pipeline** — classifier, strategy, copy, and decision narrative — on free, openly available models | OpenRouter key |
+| **Gemini** | Same pipeline on Google's Gemini; gives the strongest reference-matched images | Gemini API key, or Vertex AI |
+| **Offline demo** | Same pipeline, deterministic rules instead of a live model. No network, never fails | Nothing |
 
 The knowledge layer (past campaigns + benchmarks + decision) runs the **same in every
 mode** — only the text generation switches between a live model and deterministic rules.
+Both live modes can also generate real campaign images and accept uploaded **reference
+images** (a product photo and/or campaign references) to ground the visuals.
 
 ## Marketing problem
 
@@ -57,36 +59,44 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Select **Free offline demo** to run with no key, or **Gemini (live AI)** after adding a key.
-
-## Gemini setup (free tier)
-
-1. Get a free API key from <https://aistudio.google.com> (no billing card required).
-2. Copy the env template and add your key:
+Select **Offline demo** to run with no key, or **OpenRouter** / **Gemini** after adding a
+key. Copy the env template first:
 
 ```bash
 cp .env.template .env
 ```
 
+## Setup
+
+**OpenRouter (runs the full pipeline on free models):** add a key from
+<https://openrouter.ai/keys> to `.env`:
+
 ```bash
-GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.5-flash
+OPENROUTER_API_KEY=your_key_here
 ```
 
-Free-tier rate limits apply. Each campaign run makes ~4 model calls; the offline demo
-mode is the safe fallback for live presentations.
+Quick check: `python scripts/check_openrouter.py`
+
+**Gemini:** add a key from <https://aistudio.google.com>, or use Vertex AI:
+
+```bash
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-2.5-flash-lite
+# or, instead of a key, use Vertex AI (auth via `gcloud auth application-default login`):
+# GOOGLE_GENAI_USE_VERTEXAI=true
+# GOOGLE_CLOUD_PROJECT=your_project_id
+```
+
+Quick check: `python scripts/check_gemini.py`. Each campaign run makes ~4 model calls; the
+clients retry on rate limits, and offline mode is the safe fallback for live presentations.
 
 ### Optional: AI image generation
 
-Tick **"Generate AI campaign images"** (Gemini or OpenRouter mode) to generate real
-poster images from the visual prompts. Gemini uses `gemini-2.5-flash-image` and costs a
-few cents per image, so it is opt-in and **off by default**. It is capped by
-`MAX_IMAGES_PER_CAMPAIGN`, and an image failure (e.g. a safety refusal on alcohol
-creative) never breaks the rest of the campaign pack. Quick single-image test:
-
-```bash
-python scripts/check_gemini_image.py
-```
+Tick **"Generate AI campaign images"** (OpenRouter or Gemini mode) to turn the visual
+prompts into real poster images. It is opt-in and **off by default**, capped by
+`MAX_IMAGES_PER_CAMPAIGN`. Upload a **product photo** or **reference images** in the form
+to ground the visuals on the real product (Gemini matches references best). An image
+failure (e.g. a safety refusal on alcohol creative) never breaks the rest of the pack.
 
 ## Run tests
 
@@ -119,9 +129,9 @@ src/agents/asset_agent.py       Mock/reference image sources
 src/agents/budget_agent.py      Budget split
 src/agents/ab_test_agent.py     A/B test matrix
 src/agents/report_agent.py      Assembles the final campaign pack
-src/clients/gemini_client.py    Live Gemini client (free tier)
+src/clients/gemini_client.py    Gemini client (API key or Vertex AI)
 src/clients/demo_client.py      Offline deterministic client
-src/clients/openrouter_client.py Optional OpenRouter client
+src/clients/openrouter_client.py OpenRouter client (free models)
 tests/                          Unit tests (offline)
 docs/                           Submission guide + development notes
 ```

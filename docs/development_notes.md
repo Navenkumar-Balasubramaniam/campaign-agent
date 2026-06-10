@@ -27,7 +27,7 @@ We reframed the project around **one brand (Estrella Damm)** and gave the agent 
 **knowledge base of that brand's past campaigns and their performance**, so new
 campaigns are based on evidence. Four changes:
 
-1. **Real AI via Gemini (free tier).** Added `GeminiClient` (Google `google-genai`
+1. **Real AI via Gemini.** Added `GeminiClient` (Google `google-genai`
    SDK, JSON mode). The classifier, strategy, copy, and decision narrative now use a
    live model. The offline deterministic path was kept as a labelled fallback so a
    live demo never fails on quota/network. Provider is a dropdown.
@@ -49,6 +49,32 @@ campaigns are based on evidence. Four changes:
    to tilt the budget. In live mode the model writes the *reasoning* but only over the
    computed numbers, so figures are never hallucinated. This replaced the previously
    hardcoded "agent reasoning".
+
+## Iteration 3 — Free full-AI tier, image generation, and robustness
+
+With the grounded pipeline working, the next goals were to make the **whole** prototype
+usable with no paid key and to add real campaign imagery. Five changes:
+
+1. **Free full-AI tier (OpenRouter).** `OpenRouterClient` now runs the entire grounded
+   pipeline — classification, strategy, copy, and the decision narrative — on free, openly
+   available models. The full AI demo is now reproducible by anyone who clones the repo,
+   not only on a personal key. The same `client` interface means the grounding/retrieval/
+   decision layer did not change.
+
+2. **Reference-image grounding.** The brief accepts an optional product photo and campaign
+   reference images. They are passed to the image model as visual ground truth so the
+   generated creative keeps the product's real appearance, packaging, and logo.
+
+3. **Real image generation in both live modes.** The visual prompts can now be turned into
+   actual campaign images; the Gemini image model gives the strongest reference matching.
+   Offline mock creatives became a labelled fallback shown only when no real images exist.
+
+4. **Vertex AI option for Gemini.** `GeminiClient` can authenticate via Application Default
+   Credentials (Vertex AI) instead of an API key, selected from `.env`.
+
+5. **Robustness.** Both live clients retry with backoff on rate-limit (429) responses, so a
+   multi-step run that briefly exceeds a per-minute quota recovers instead of failing the
+   whole campaign.
 
 ## Key design decision: numbers are computed, reasoning is generated
 
