@@ -4,10 +4,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _truthy(value: str | None) -> bool:
+    return (value or "").strip().lower() in ("1", "true", "yes", "on")
+
+
 class Settings:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
     GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image")
+    # Vertex AI mode: authenticates via Application Default Credentials
+    # instead of an API key.
+    USE_VERTEX = _truthy(os.getenv("GOOGLE_GENAI_USE_VERTEXAI"))
+    GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+    GOOGLE_CLOUD_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "global")
     OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
     TEXT_MODEL = os.getenv(
         "OPENROUTER_TEXT_MODEL",

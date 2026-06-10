@@ -10,7 +10,7 @@ class FakeClient:
             "ctas": ["Shop Now", "Learn More"],
         }
 
-    def generate_image(self, prompt: str):
+    def generate_image(self, prompt: str, reference_images=None):
         return "https://example.com/generated-image.png"
 
 

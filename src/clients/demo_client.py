@@ -70,5 +70,5 @@ class DemoClient:
             "ctas": [cta, "Learn More"],
         }
 
-    def generate_image(self, prompt: str):
+    def generate_image(self, prompt: str, reference_images=None):
         raise RuntimeError("Image generation requires OpenRouter API mode.")

@@ -102,22 +102,42 @@ with st.form("campaign_brief"):
 
     generation_mode = st.selectbox(
         "Generation Mode",
-        ["Gemini (live AI)", "Free offline demo", "OpenRouter API"],
+        ["OpenRouter", "Gemini", "Offline demo"],
         help=(
-            "Gemini uses a live AI model grounded on the brand's past campaigns. "
-            "Free offline demo runs deterministic logic with no API key."
+            "Choose which AI backend generates the campaign. "
+            "Offline demo runs without an API key."
         ),
     )
 
     generate_image = st.checkbox(
-        "Generate AI campaign images (paid — uses API credits)",
+        "Generate AI campaign images",
         value=False,
-        disabled=generation_mode == "Free offline demo",
+        disabled=generation_mode == "Offline demo",
         help=(
-            "Generates real AI images from the visual prompts. "
-            "Gemini uses gemini-2.5-flash-image; OpenRouter uses its image model. "
-            "Costs a few cents per image. Not available in offline mode."
+            "Also generate real images from the visual prompts. "
+            "Not available in offline mode."
         ),
+    )
+
+    st.markdown("**Reference Images (optional)**")
+    st.caption(
+        "Upload reference images when the campaign is not Estrella, or to match a "
+        "specific product. The AI uses them to ground the generated visuals. "
+        "Leave empty to generate freely."
+    )
+
+    product_image = st.file_uploader(
+        "Product picture",
+        type=["png", "jpg", "jpeg", "webp"],
+        accept_multiple_files=False,
+        help="A photo of the actual product. The AI will match its look when generating images.",
+    )
+
+    reference_files = st.file_uploader(
+        "Campaign reference images",
+        type=["png", "jpg", "jpeg", "webp"],
+        accept_multiple_files=True,
+        help="Brand, style, or mood references to guide the generated visuals.",
     )
 
     submitted = st.form_submit_button("Generate Campaign Pack")
@@ -138,19 +158,33 @@ if submitted:
             cta=cta,
         )
 
-        if generation_mode == "Gemini (live AI)":
+        if generation_mode == "Gemini":
             client = GeminiClient()
-        elif generation_mode == "OpenRouter API":
+        elif generation_mode == "OpenRouter":
             client = OpenRouterClient()
         else:
             client = DemoClient()
 
         orchestrator = CampaignOrchestrator(client)
 
+        # Collect any uploaded references (product photo first, then the rest)
+        # so image generation can match the real product/brand.
+        uploaded_refs = []
+        if product_image is not None:
+            uploaded_refs.append((product_image, "Product reference"))
+        for f in reference_files or []:
+            uploaded_refs.append((f, "Campaign reference"))
+
+        reference_images = [
+            {"data": f.getvalue(), "mime_type": f.type or "image/png"}
+            for f, _ in uploaded_refs
+        ]
+
         with st.spinner("Generating campaign pack..."):
             result = orchestrator.run(
                 brief,
                 generate_image=generate_image,
+                reference_images=reference_images or None,
             )
 
         pack = result["campaign_pack"]
@@ -330,8 +364,8 @@ if submitted:
                         use_container_width=True,
                     )
         elif not generate_image:
-            if generation_mode == "Free offline demo":
-                st.info("Offline mode uses visual prompts and mock creatives instead of paid image generation.")
+            if generation_mode == "Offline demo":
+                st.info("Offline mode uses visual prompts and mock creatives instead of generated images.")
             else:
                 st.info("AI image generation was not selected. Tick the checkbox to generate images.")
 
@@ -343,7 +377,7 @@ if submitted:
             for err in image_errors:
                 st.caption(err)
 
-        # Mock creatives are a no-cost fallback visual. Only show them when no
+        # Mock creatives are a fallback visual. Only show them when no
         # real AI images were generated, so they don't clutter the AI output.
         if not image_urls:
             st.subheader("Mock Creative Assets (offline draft layouts)")
@@ -369,23 +403,18 @@ if submitted:
             with st.expander(f"Visual Concept {i} Prompt"):
                 st.write(prompt)
 
-        st.subheader("Mock Asset Sources")
-        mock_assets = pack["mock_assets"]
-        st.write(mock_assets["asset_strategy"])
-        st.caption(mock_assets["usage_note"])
-
-        asset_cols = st.columns(3)
-        for i, asset in enumerate(mock_assets["assets"]):
-            with asset_cols[i % 3]:
-                with st.container(border=True):
-                    if asset["image_url"]:
-                        st.image(asset["image_url"], use_container_width=True)
-                    st.markdown(f"**{asset['title']}**")
-                    st.caption(asset["asset_type"])
-                    st.markdown(f"Source: [{asset['source']}]({asset['source_url']})")
-                    st.markdown(f"License: {asset['license']}")
-                    st.write(asset["use_case"])
-                    st.caption(asset["note"])
+        if uploaded_refs:
+            st.subheader("Reference Images")
+            st.caption(
+                "Uploaded references used to ground the generated visuals."
+            )
+            ref_cols = st.columns(3)
+            for i, (f, label) in enumerate(uploaded_refs):
+                with ref_cols[i % 3]:
+                    with st.container(border=True):
+                        st.image(f.getvalue(), use_container_width=True)
+                        st.markdown(f"**{label}**")
+                        st.caption(f.name)
 
         st.divider()
 

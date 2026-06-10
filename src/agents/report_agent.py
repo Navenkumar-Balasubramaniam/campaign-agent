@@ -80,7 +80,7 @@ class ReportAgent:
         limitations = [
             "The prototype does not connect to a live ad account; benchmarks come from a static, synthetic dataset.",
             "Generated copy still needs human review for brand accuracy and platform policy compliance.",
-            "Image generation may require a paid API, so the free demo mode focuses on text, strategy, and visual prompts.",
+            "Image generation is optional, so the pack can focus on text, strategy, and visual prompts when images are off.",
             "Free stock or Commons images may still need review for trademark, model-release, and brand-approval issues.",
         ]
 

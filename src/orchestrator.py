@@ -27,7 +27,7 @@ class CampaignOrchestrator:
         self.asset_agent = AssetAgent()
         self.mockup_agent = MockupAgent()
 
-    def run(self, brief, generate_image=False):
+    def run(self, brief, generate_image=False, reference_images=None):
         # 1. Load the brand knowledge base (past campaigns + results).
         store = CampaignStore(brand=brief.brand)
         benchmarks = Benchmarks(brand=brief.brand)
@@ -80,7 +80,11 @@ class CampaignOrchestrator:
             prompts = visuals["image_prompts"][: settings.MAX_IMAGES_PER_CAMPAIGN]
             for prompt in prompts:
                 try:
-                    image_urls.append(self.client.generate_image(prompt))
+                    image_urls.append(
+                        self.client.generate_image(
+                            prompt, reference_images=reference_images
+                        )
+                    )
                 except Exception as e:
                     image_errors.append(str(e))
 
